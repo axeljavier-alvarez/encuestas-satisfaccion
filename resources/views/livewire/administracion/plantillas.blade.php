@@ -454,6 +454,12 @@
                                             {{ $pregunta->tema?->nombre ?? 'Sin tema' }}
                                         </flux:badge>
 
+                                        <flux:badge color="amber" size="sm">
+                                            Tipos respuesta:
+                                            {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo respuesta' }}
+                                        </flux:badge>
+
+
                                     </div>
 
                                 </div>
