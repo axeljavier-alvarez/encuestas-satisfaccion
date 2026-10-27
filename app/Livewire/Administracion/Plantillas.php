@@ -39,6 +39,10 @@ class Plantillas extends Component
     public array $tiposRespuestaSeleccionados = [];
     // busqueda dentro de banco
     public string $buscarPregunta = '';
+    // modal para consultar preguntas asignadas
+    public bool $mostrarModalPreguntasAsignadas = false;
+    // id de la plantilla que se está consultando
+    public ?int $plantillaConsultaId = null;
 
     public function crearPlantilla(): void
     {
@@ -205,6 +209,19 @@ class Plantillas extends Component
         ]);
 
         $this->resetValidation();
+    }
+    // consultar las preguntas asignadas a una plantilla
+    public function verPreguntasAsignadas(int $plantillaId)
+    {
+        $plantilla = Plantilla::findOrFail($plantillaId);
+        $this->plantillaConsultaId = $plantilla->id;
+        $this->mostrarModalPreguntasAsignadas = true;
+    }
+    // cerrar modal de consulta
+    public function cerrarPreguntasAsignadas(): void
+    {
+        $this->mostrarModalPreguntasAsignadas = false;
+        $this->plantillaConsultaId = null; 
     }
     // agregar y quitar preguntas
     public function alternarPregunta(int $preguntaId): void
@@ -475,6 +492,16 @@ class Plantillas extends Component
                 );
             }
         );
+        // plantilla seleccionada para consultar sus preguntas
+        $plantillaConsulta = $this->plantillaConsultaId
+        ? Plantilla::with([
+            'preguntas' => function ($query) {
+                $query->with(['factor', 'tema'])
+                ->orderByPivot('orden');
+            }
+        ])->find($this->plantillaConsultaId)
+        : null;
+
         return view('livewire.administracion.plantillas', [
             'plantillas' => $plantillas,
             'totalPlantillas' => Plantilla::count(),
@@ -488,7 +515,9 @@ class Plantillas extends Component
             'cantidadPredeterminadas' => $cantidadPredeterminadas,
             'cantidadTotal' => $cantidadTotal,
             // validacion visual del botón
-            'tiposValidos' => $tiposValidos
+            'tiposValidos' => $tiposValidos,
+            'plantillaConsulta' => $plantillaConsulta,
+            
         ]);
     }
 }
