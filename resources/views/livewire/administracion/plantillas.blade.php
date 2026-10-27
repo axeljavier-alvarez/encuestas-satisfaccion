@@ -604,79 +604,116 @@
                 </div>
                 {{-- LISTADO DESPLAZABLE --}}
                 <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
-                    {{-- forelse recorre una colección y permite mostrar mensaje si esta vacia, indice  posicion pregunta y pregunta contiene datos de pregunta actual --}}
-                    @forelse($plantillaConsulta->preguntas as $indice => $pregunta)
-                        <div {{-- identificar de manera unica un elemento de html --}}
-                            wire:key="consulta-{{ $plantillaConsulta->id }}-{{ $pregunta->id }}"
-                            class="mb-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                            <div class="flex items-start gap-4">
-                                {{-- numero de orden --}}
-                                <div
-                                    style="
-                                        display: flex;
-                                        width: 42px;
-                                        height: 42px;
-                                        min-width: 42px;
-                                        align-items: center;
-                                        justify-content: center;
-                                        border-radius: 50%;
-                                        background-color: #172554;
-                                        color: #ffffff;
-                                        font-size: 15px;
-                                        font-weight: 700;
-                                    ">
-                                    {{ $pregunta->pivot->orden }}
-                                </div>
-                                {{-- información --}}
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex flex-wrap items-center justify-between gap-2">
-                                        <span class="text-xs font-bold uppercase tracking-wide text-slate-400">
-                                            Pregunta {{ $pregunta->pivot->orden }}
-                                            . ID #{{ $pregunta->id }}
-                                        </span>
-                                        <flux:badge size="sm"
-                                            :color="$pregunta->es_predeterminada ? 'emerald' : 'zinc'">
-                                            {{ $pregunta->es_predeterminada ? 'Predeterminada' : 'General' }}
-                                        </flux:badge>
+                    @if (count($ordenPreguntas) > 0)
+
+                        @foreach ($ordenPreguntas as $indice => $preguntaId)
+                            @php
+                                $pregunta = $plantillaConsulta->preguntas->firstWhere('id', $preguntaId);
+                            @endphp
+
+                            @if (!$pregunta)
+                                @continue
+                            @endif
+
+                            <div wire:key="consulta-{{ $plantillaConsulta->id }}-{{ $pregunta->id }}"
+                                class="mb-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <div class="flex items-start gap-4">
+
+                                    <div class="shrink-0 self-start">
+                                        <x-numero-orden :numero="$indice + 1" />
                                     </div>
-                                    <p class="mt-2 text-sm font-semibold leading-6 text-slate-900">
-                                        {{ $pregunta->texto }}
-                                    </p>
-                                    <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                                        <flux:badge color="blue" size="sm">
-                                            Factor:
-                                            {{ $pregunta->factor?->nombre ?? 'Sin factor' }}
-                                        </flux:badge>
-                                        <flux:badge color="zinc" size="sm">
-                                            Tema:
-                                            {{ $pregunta->tema?->nombre ?? 'Sin tema' }}
-                                        </flux:badge>
+
+                                    <div class="min-w-0 flex-1">
+
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+
+                                            <span
+                                                class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                Pregunta {{ $indice + 1 }}
+                                            </span>
+
+                                            <flux:badge size="sm"
+                                                :color="$pregunta->es_predeterminada ? 'emerald' : 'zinc'">
+                                                {{ $pregunta->es_predeterminada ? 'Predeterminada' : 'General' }}
+                                            </flux:badge>
+
+                                        </div>
+
+                                        <p class="mt-2 text-sm font-semibold leading-6 text-slate-900">
+                                            {{ $pregunta->texto }}
+                                        </p>
+
+                                        <div
+                                            class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+
+                                            <flux:badge color="blue" size="sm">
+                                                Factor:
+                                                {{ $pregunta->factor?->nombre ?? 'Sin factor' }}
+                                            </flux:badge>
+
+                                            <flux:badge color="zinc" size="sm">
+                                                Tema:
+                                                {{ $pregunta->tema?->nombre ?? 'Sin tema' }}
+                                            </flux:badge>
+
+                                            <flux:badge color="amber" size="sm">
+                                                Tipos respuesta:
+                                                {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo respuesta' }}
+                                            </flux:badge>
+
+                                        </div>
+
                                     </div>
+
+                                    <div class="flex shrink-0 flex-col items-center gap-2">
+
+                                        <flux:button type="button" size="sm" variant="outline"
+                                            icon="chevron-up"
+                                            wire:click="moverPregunta({{ $indice }}, 'arriba')"
+                                            :disabled="$indice === 0" title="Subir pregunta" />
+
+                                        <flux:button type="button" size="sm" variant="outline"
+                                            icon="chevron-down"
+                                            wire:click="moverPregunta({{ $indice }}, 'abajo')"
+                                            :disabled="$indice === count($ordenPreguntas) - 1"
+                                            title="Bajar pregunta" />
+
+                                    </div>
+
                                 </div>
                             </div>
-                        </div>
-                    @empty
+                        @endforeach
+                    @else
                         <div
-                            class="flex min-h-52 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                            <h3 class="text-sm font-bold text-slate-800">
-                                Esta plantilla no tiene preguntas asignadas.
-                            </h3>
-                            <p class="mt-2 max-w-md text-xs leading-5 text-slate-500">
-                                Utilice la opción Asignar preguntas para completar
-                                las 10 preguntas de esta plantilla.
+                            class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                            <p class="text-sm font-semibold text-slate-700">
+                                Esta plantilla todavía no tiene preguntas asignadas.
                             </p>
                         </div>
-                    @endforelse
+
+                    @endif
                 </div>
             @endif
             {{-- pie fijo --}}
-            <div class="flex shrink-0 justify-end border-t border-slate-200 bg-white pt-4">
-                <flux:button type="button" variant="primary" wire:click="cerrarPreguntasAsignadas">
+            <div class="flex justify-end gap-3">
 
-                    Cerrar
-
+                <flux:button type="button" variant="subtle" wire:click="cerrarPreguntasAsignadas">
+                    Cancelar
                 </flux:button>
+
+                <flux:button type="button" variant="primary" wire:click="guardarOrdenPreguntas"
+                    wire:loading.attr="disabled" wire:target="guardarOrdenPreguntas">
+                    Guardar orden
+                </flux:button>
+
             </div>
+
+            @error('ordenPreguntas')
+                <p class="text-sm font-semibold text-red-600">
+                    {{ $message }}
+                </p>
+            @enderror
+
         </div>
     </flux:modal>
 

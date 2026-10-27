@@ -43,6 +43,8 @@ class Plantillas extends Component
     public bool $mostrarModalPreguntasAsignadas = false;
     // id de la plantilla que se está consultando
     public ?int $plantillaConsultaId = null;
+    // ordenar preguntas
+    public array $ordenPreguntas = [];
 
     public function crearPlantilla(): void
     {
@@ -213,15 +215,24 @@ class Plantillas extends Component
     // consultar las preguntas asignadas a una plantilla
     public function verPreguntasAsignadas(int $plantillaId)
     {
-        $plantilla = Plantilla::findOrFail($plantillaId);
+        $plantilla = Plantilla::with('preguntas')
+        ->findOrFail($plantillaId);
         $this->plantillaConsultaId = $plantilla->id;
+        $this->ordenPreguntas =$plantilla->preguntas
+        ->sortBy('pivot.orden')
+        ->pluck('id')
+        ->values()
+        ->all();
+        $this->resetValidation();
         $this->mostrarModalPreguntasAsignadas = true;
     }
     // cerrar modal de consulta
     public function cerrarPreguntasAsignadas(): void
     {
         $this->mostrarModalPreguntasAsignadas = false;
-        $this->plantillaConsultaId = null; 
+        $this->plantillaConsultaId = null;
+        $this->ordenPreguntas = [];
+        $this->resetValidation();
     }
     // agregar y quitar preguntas
     public function alternarPregunta(int $preguntaId): void
@@ -266,7 +277,76 @@ class Plantillas extends Component
 
         $this->preguntasSeleccionadas[] = $preguntaId;
     }
+    // mover preguntas
+    public function moverPregunta(int $indice, string $direccion): void
+    {
+        $total = count($this->ordenPreguntas);
+        if ($direccion === 'arriba') {
+            $nuevoIndice = $indice - 1;
+        } elseif ($direccion === 'abajo') {
+            $nuevoIndice = $indice + 1;
+        } else {
+            return;
+        }
+        // no salir de limites
+        if (
+            $indice < 0 || $indice >= $total ||
+            $nuevoIndice < 0 || $nuevoIndice >= $total
+        ) {
+            return;
+        }
+        // intercambiar posiciones del arreglo
+        [
+            $this->ordenPreguntas[$indice],
+            $this->ordenPreguntas[$nuevoIndice]
+        ] = [
+            $this->ordenPreguntas[$nuevoIndice],
+            $this->ordenPreguntas[$indice]
+        ];
+    }
 
+    // guardar nuevo orden preguntas
+    public function guardarOrdenPreguntas(): void
+    {
+        if (!$this->plantillaConsultaId) {
+            return;
+        }
+        $ids = array_map('intval', $this->ordenPreguntas);
+        if (count($ids) !== 10 || count($ids) !== count(array_unique($ids))) {
+            $this->addError(
+                'ordenPreguntas',
+                'Debe tener exactamente 10 preguntas para guardar.'
+            );
+            return;
+        }
+        $preguntas = Pregunta::whereIn('id', $ids)
+            ->where('activo', true)
+            ->get();
+        if (
+            $preguntas->count() !== 10 ||
+            $preguntas->where('es_predeterminada', true)->count() !== 2
+        ) {
+            $this->addError(
+                'ordenPreguntas',
+                'Debe seleccionar 10 preguntas activas, incluyendo exactamente 2 predeterminadas.'
+            );
+            return;
+        }
+        DB::transaction(function() use ($ids){
+            $plantilla = Plantilla::lockForUpdate()
+            ->findOrFail($this->plantillaConsultaId);
+            $datos = [];
+            foreach ($ids as $indice => $id){
+                $datos[$id] = ['orden' => $indice + 1];
+            }
+           $plantilla->preguntas()->sync($datos);
+        });
+        $this->cerrarPreguntasAsignadas();
+        session()->flash(
+            'mensaje',
+            'Las preguntas y su orden se actualizaron correctamente.'
+        );
+    }
 
     public function guardarPreguntas(): void
     {
@@ -494,13 +574,13 @@ class Plantillas extends Component
         );
         // plantilla seleccionada para consultar sus preguntas
         $plantillaConsulta = $this->plantillaConsultaId
-        ? Plantilla::with([
-            'preguntas' => function ($query) {
-                $query->with(['factor', 'tema'])
-                ->orderByPivot('orden');
-            }
-        ])->find($this->plantillaConsultaId)
-        : null;
+            ? Plantilla::with([
+                'preguntas' => function ($query) {
+                    $query->with(['factor', 'tema', 'tiposRespuesta'])
+                        ->orderByPivot('orden');
+                }
+            ])->find($this->plantillaConsultaId)
+            : null;
 
         return view('livewire.administracion.plantillas', [
             'plantillas' => $plantillas,
@@ -517,7 +597,7 @@ class Plantillas extends Component
             // validacion visual del botón
             'tiposValidos' => $tiposValidos,
             'plantillaConsulta' => $plantillaConsulta,
-            
+
         ]);
     }
 }
