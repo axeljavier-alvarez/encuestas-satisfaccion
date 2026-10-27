@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('opciones_respuesta', function (Blueprint $table) {
             $table->id();
+            // $table->foreignId('pregunta_tipo_respuesta_id')
+            //     ->constrained('pregunta_tipo_respuesta')
+            //     ->cascadeOnDelete();
 
-            /*$table->foreignId('pregunta_id')
-                ->constrained('preguntas')
-                ->cascadeOnDelete(); */
             $table->foreignId('pregunta_tipo_respuesta_id')
                 ->constrained('pregunta_tipo_respuesta')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
 
             $table->string('valor', 50);
             $table->string('etiqueta', 100);

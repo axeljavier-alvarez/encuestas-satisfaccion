@@ -10,14 +10,21 @@ return new class extends Migration
     {
         Schema::create('plantilla_pregunta', function (Blueprint $table) {
             $table->id();
+            
+            // $table->foreignId('plantilla_id')
+            //     ->constrained('plantillas')
+            //     ->cascadeOnDelete();
 
+            // $table->foreignId('pregunta_id')
+            //     ->constrained('preguntas')
+            //     ->cascadeOnDelete();
             $table->foreignId('plantilla_id')
-                ->constrained('plantillas')
-                ->cascadeOnDelete();
+            ->constrained('plantillas')
+            ->restrictOnDelete();
 
             $table->foreignId('pregunta_id')
-                ->constrained('preguntas')
-                ->cascadeOnDelete();
+            ->constrained('preguntas')
+            ->restrictOnDelete();
 
             // Tipo de respuesta elegido para esta pregunta
             $table->foreignId('tipo_respuesta_id')

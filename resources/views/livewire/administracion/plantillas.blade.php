@@ -443,7 +443,6 @@
 
                                     {{-- FACTOR Y TEMA DE LA PREGUNTA --}}
                                     <div class="flex flex-wrap gap-2">
-
                                         <flux:badge size="sm" color="blue">
                                             <span class="font-bold">Factor:</span>
                                             {{ $pregunta->factor?->nombre ?? 'Sin factor' }}
@@ -458,8 +457,6 @@
                                             Tipos respuesta:
                                             {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo respuesta' }}
                                         </flux:badge>
-
-
                                     </div>
 
                                 </div>

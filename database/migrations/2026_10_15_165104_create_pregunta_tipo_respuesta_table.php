@@ -11,9 +11,13 @@ return new class extends Migration
     {
         Schema::create('pregunta_tipo_respuesta', function (Blueprint $table) {
             $table->id();
+            // $table->foreignId('pregunta_id')
+            //     ->constrained('preguntas')
+            //     ->cascadeOnDelete();
             $table->foreignId('pregunta_id')
-                ->constrained('preguntas')
-                ->cascadeOnDelete();
+            ->constrained('preguntas')
+            ->restrictOnDelete();
+
             $table->foreignId('tipo_respuesta_id')
                 ->constrained('tipos_respuesta')
                 ->restrictOnDelete();

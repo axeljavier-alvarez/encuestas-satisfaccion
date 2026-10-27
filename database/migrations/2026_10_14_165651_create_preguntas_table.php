@@ -11,9 +11,12 @@ return new class extends Migration
         Schema::create('preguntas', function (Blueprint $table) {
             $table->id();
 
+            // $table->foreignId('factor_id')
+            //     ->constrained('factores')
+            //     ->cascadeOnDelete();
             $table->foreignId('factor_id')
                 ->constrained('factores')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
 
             $table->foreignId('tema_id')
                 ->nullable()
@@ -26,11 +29,11 @@ return new class extends Migration
 
             $table->boolean('activo')->default(true);
 
-           /* $table->foreignId('tipo_respuesta_id')
+            /* $table->foreignId('tipo_respuesta_id')
                 ->nullable()
                 ->constrained('tipos_respuesta')
                 ->restrictOnDelete(); */
-                
+
             /*$table->foreignId('escala_id')
                 ->nullable()
                 ->constrained('escalas')
