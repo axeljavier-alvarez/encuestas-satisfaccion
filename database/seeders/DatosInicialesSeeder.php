@@ -15,6 +15,7 @@ class DatosInicialesSeeder extends Seeder
         DB::transaction(function (): void {
             $this->crearPlantillas();
             $this->crearBancoPreguntas();
+            $this->activarPreguntasPredeterminadasPorId();
         });
     }
 
@@ -1397,7 +1398,9 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                     'tema_id' => $temaId,
                     'texto' => $fila['texto'],
                     'es_nps' => $fila['codigo'] === 'REC-01',
+                    // El estado predeterminado se asigna al final por ID (1 y 2).
                     'activo' => false,
+                    'es_predeterminada' => false,
                     'obligatoria' => (bool) $fila['obligatoria'],
                     'updated_at' => $ahora,
                 ] + ($exists ? [] : ['created_at' => $ahora])
@@ -1449,6 +1452,30 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                 }
             }
         }
+    }
+
+    /**
+     * Marca únicamente las preguntas con ID 1 y 2 como activas y predeterminadas.
+     * Importante: los IDs no garantizan que correspondan a REC-01 y ATR-01.
+     */
+    private function activarPreguntasPredeterminadasPorId(): void
+    {
+        $ids = [1, 2];
+
+        $encontradas = DB::table('preguntas')->whereIn('id', $ids)->count();
+        if ($encontradas !== count($ids)) {
+            throw new RuntimeException(
+                'No se encontraron las dos preguntas con ID 1 y 2. Verifique los IDs en la tabla preguntas.'
+            );
+        }
+
+        DB::table('preguntas')
+            ->whereNotIn('id', $ids)
+            ->update(['activo' => false, 'es_predeterminada' => false]);
+
+        DB::table('preguntas')
+            ->whereIn('id', $ids)
+            ->update(['activo' => true, 'es_predeterminada' => true]);
     }
 
     private function crearPlantillas(): void

@@ -243,23 +243,23 @@ class Preguntas extends Component
                 abort(404);
             }
 
-            if ($this->es_predeterminada) {
-                if (!$esEdicion || !$pregunta->activo) {
-                    throw ValidationException::withMessages([
-                        'es_predeterminada' => 'Solo una pregunta activa y existente puede ser predeterminada.',
-                    ]);
-                }
+            // if ($this->es_predeterminada) {
+            //     if (!$esEdicion || !$pregunta->activo) {
+            //         throw ValidationException::withMessages([
+            //             'es_predeterminada' => 'Solo una pregunta activa y existente puede ser predeterminada.',
+            //         ]);
+            //     }
 
-                $totalOtras = $preguntasBloqueadas->filter(
-                    fn($item) => $item->activo && $item->es_predeterminada && $item->id !== $pregunta->id
-                )->count();
+            //     $totalOtras = $preguntasBloqueadas->filter(
+            //         fn($item) => $item->activo && $item->es_predeterminada && $item->id !== $pregunta->id
+            //     )->count();
 
-                if ($totalOtras >= 2) {
-                    throw ValidationException::withMessages([
-                        'es_predeterminada' => 'Ya existen 2 preguntas predeterminadas activas. Desmarque una antes de seleccionar otra.',
-                    ]);
-                }
-            }
+            //     if ($totalOtras >= 2) {
+            //         throw ValidationException::withMessages([
+            //             'es_predeterminada' => 'Ya existen 2 preguntas predeterminadas activas. Desmarque una antes de seleccionar otra.',
+            //         ]);
+            //     }
+            // }
 
             $pregunta->fill([
                 'codigo' => trim($this->codigo),
@@ -267,9 +267,11 @@ class Preguntas extends Component
                 'tema_id' => $this->temaId,
                 'texto' => trim($this->texto),
                 'es_nps' => $this->es_nps,
-                'obligatoria' => $this->es_predeterminada ? true : $this->obligatoria,
-                'es_predeterminada' => $this->es_predeterminada,
+                'obligatoria' => $this->obligatoria,
+                // 'obligatoria' => $this->es_predeterminada ? true : $this->obligatoria,
+                // 'es_predeterminada' => $this->es_predeterminada,
             ]);
+
             if (!$esEdicion) {
                 $pregunta->activo = false;
             }
@@ -379,9 +381,16 @@ class Preguntas extends Component
                 abort(404);
             }
 
+            // if ($pregunta->activo && $pregunta->es_predeterminada) {
+            //     throw ValidationException::withMessages([
+            //         'es_predeterminada' => 'Primero edite la pregunta y desmarque Predeterminada antes de desactivarla.',
+            //     ]);
+            // }
+
             if ($pregunta->activo && $pregunta->es_predeterminada) {
                 throw ValidationException::withMessages([
-                    'es_predeterminada' => 'Primero edite la pregunta y desmarque Predeterminada antes de desactivarla.',
+                    'es_predeterminada' =>
+                    'No se puede desactivar una pregunta predeterminada. Su configuración se administra desde los datos iniciales del sistema.',
                 ]);
             }
 

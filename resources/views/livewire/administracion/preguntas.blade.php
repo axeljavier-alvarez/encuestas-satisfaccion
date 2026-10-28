@@ -332,10 +332,12 @@
                             <flux:button size="sm" variant="subtle" wire:click="editar({{ $pregunta->id }})">
                                 Editar
                             </flux:button>
+                            @if(!in_array($pregunta->id, [1,2]))
                             <flux:button size="sm" variant="subtle"
                                 wire:click="cambiarEstado({{ $pregunta->id }})">
                                 Cambiar estado
                             </flux:button>
+                            @endif
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
@@ -382,7 +384,7 @@
 
             {{-- Solo se puede configurar en preguntas existentes y activas.
                  predeterminadaOriginal mantiene visible el control hasta guardar. --}}
-            @if ($preguntaId && $activo && ($predeterminadaOriginal || $totalPredeterminadas < 2))
+            {{-- @if ($preguntaId && $activo && ($predeterminadaOriginal || $totalPredeterminadas < 2))
                 <div class="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                     <p class="text-sm font-bold text-slate-900">
                         ¿Desea que esta pregunta aparezca en todas las plantillas?
@@ -402,7 +404,7 @@
                         <p class="text-xs font-bold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
-            @endif
+            @endif --}}
 
             <flux:select wire:model.live="factorId" label="Factor">
                 <option value="">Seleccione un factor</option>

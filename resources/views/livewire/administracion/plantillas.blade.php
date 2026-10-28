@@ -454,8 +454,9 @@
                                         </flux:badge>
 
                                         <flux:badge color="amber" size="sm">
-                                            Tipos respuesta:
-                                            {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo respuesta' }}
+                                            {{ $pregunta->tiposRespuesta->count() === 1 ? 'Tipo de respuesta:' : 'Tipos de respuesta:' }}
+
+                                            {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo de respuesta' }}
                                         </flux:badge>
                                     </div>
 
@@ -660,9 +661,11 @@
                                             </flux:badge>
 
                                             <flux:badge color="amber" size="sm">
-                                                Tipos respuesta:
-                                                {{ $pregunta->tiposRespuesta->pluck('nombre')->implode(', ') ?: 'Sin tipo respuesta' }}
+                                                Tipo de respuesta:
+                                                {{ $pregunta->tiposRespuesta->firstWhere('id', (int) $pregunta->pivot?->tipo_respuesta_id)?->nombre ??
+                                                    'Sin tipo asignado' }}
                                             </flux:badge>
+
 
                                         </div>
 
@@ -688,12 +691,23 @@
                         @endforeach
                     @else
                         <div
-                            class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                            <p class="text-sm font-semibold text-slate-700">
-                                Esta plantilla todavía no tiene preguntas asignadas.
-                            </p>
-                        </div>
+                            class="flex h-full min-h-full w-full flex-col
+                                items-center justify-center
+                                rounded-xl border border-dashed
+                                border-slate-300 bg-slate-50
+                                px-6 py-10 text-center">
 
+                            <h3 class="text-sm font-bold text-slate-800">
+                                Esta plantilla todavía no tiene preguntas asignadas.
+                            </h3>
+
+                            <p class="mt-2 max-w-md text-xs leading-5 text-slate-500">
+                                Utilice el banco de preguntas para seleccionar
+                                y asignar las 10 preguntas correspondientes
+                                a esta plantilla de evaluación.
+                            </p>
+
+                        </div>
                     @endif
                 </div>
             @endif
