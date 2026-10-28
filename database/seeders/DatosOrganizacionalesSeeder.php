@@ -244,6 +244,16 @@ class DatosOrganizacionalesSeeder extends Seeder
                 'email' => 'recursos.humanos@evaluaciones.test',
                 'es_admin' => true,
             ],
+
+            // Gerencia de Desarrollo Social admin
+            [
+                'codigo' => 'GER-ADMIN',
+                'nombre' => 'Gerencia de Desarrollo Social',
+                'plantilla' => 'GER',
+                'jefe_codigo' => 'GER-GEN',
+                'email' => 'munigerenciasocial@gmail.com',
+                'es_admin' => true,
+            ],
         ];
     }
 

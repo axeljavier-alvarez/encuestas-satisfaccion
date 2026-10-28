@@ -81,7 +81,7 @@
             <flux:sidebar.nav>
 
                 {{-- Portal de evaluaciones --}}
-                <flux:sidebar.group
+                {{-- <flux:sidebar.group
                     heading="Portal de evaluaciones"
                     class="grid"
                 >
@@ -102,7 +102,7 @@
                     >
                         Mis resultados
                     </flux:sidebar.item>
-                </flux:sidebar.group>
+                </flux:sidebar.group> --}}
 
                 {{-- Gestión de Contenido / Preguntas (Visible para creadores y admins) --}}
                 {{--
