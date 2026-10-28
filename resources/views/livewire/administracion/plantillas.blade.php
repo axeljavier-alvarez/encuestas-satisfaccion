@@ -201,6 +201,11 @@
                                     Ver preguntas
                                 </flux:button>
 
+                                {{-- VISTA PREVIA DEL FORMULARIO --}}
+                                <flux:button type="button" size="sm" variant="outline" icon="eye"
+                                    wire:click="verFormulario({{ $plantilla->id }})">
+                                    Ver formulario
+                                </flux:button>
                                 {{-- ACTIVAR / DESACTIVAR --}}
                                 <flux:button type="button" size="sm"
                                     :variant="$plantilla->activo ? 'danger' : 'primary'"
@@ -730,6 +735,244 @@
                     {{ $message }}
                 </p>
             @enderror
+
+        </div>
+    </flux:modal>
+
+
+    <flux:modal wire:model="mostrarModalFormulario" class="w-full max-w-5xl !overflow-hidden">
+        <div class="flex min-h-0 flex-col gap-4 overflow-hidden" style="height: min(820px, calc(100dvh - 100px));">
+            {{-- ENCABEZADO --}}
+            <div class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div class="flex items-center gap-3">
+                    <img src="{{ asset('images/icono_muni.png') }}" alt="Municipalidad de Guatemala"
+                        class="h-14 w-14 shrink-0 object-contain" />
+
+                    <div>
+                        <flux:heading size="lg">
+                            Vista previa del formulario
+                        </flux:heading>
+
+                        <flux:subheading>
+                            Visualización de la encuesta para el ciudadano
+                        </flux:subheading>
+                    </div>
+                </div>
+                <flux:badge color="blue" size="sm">
+                    Vista previa
+                </flux:badge>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl bg-slate-100 p-3 sm:p-6">
+                @if ($plantillaFormulario)
+                    <div class="mx-auto max-w-3xl space-y-5">
+                        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+                            <div class="h-3 bg-gradient-to-r from-blue-950 via-blue-800 to-indigo-700"></div>
+                            <div class="space-y-4 p-6 sm:p-8">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ asset('images/icono_muni.png') }}" alt="Municipalidad de Guatemala"
+                                        class="h-14 w-14 object-contain" />
+
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-widest text-blue-800">
+                                            Municipalidad de Guatemala
+                                        </p>
+
+                                        <p class="text-xs text-slate-500">
+                                            Evaluación de satisfacción
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="border-t border-slate-100 pt-5">
+                                    <h2 class="text-2xl font-black text-slate-950 sm:text-3xl">
+                                        {{ $plantillaFormulario->nombre }}
+                                    </h2>
+
+                                    @if ($plantillaFormulario->descripcion)
+                                        <p class="mt-3 text-sm text-slate-600">
+                                            {{ $plantillaFormulario->descripcion }}
+                                        </p>
+                                    @endif
+                                    <p class="mt-4 text-sm leading-6 text-slate-500">
+                                        Su opinión es importante para mejorar nuestros programas
+                                        y servicios. Seleccione la respuesta que mejor represente
+                                        su experiencia.
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <flux:badge color="blue">
+                                        {{ $plantillaFormulario->codigo }}
+                                    </flux:badge>
+
+                                    <flux:badge color="zinc">
+                                        {{ $plantillaFormulario->preguntas->count() }} preguntas
+                                    </flux:badge>
+                                </div>
+                                <p class="text-xs font-medium text-amber-700">
+                                    Vista previa: las respuestas no se guardarán
+                                </p>
+                            </div>
+                        </div>
+                        @forelse ($plantillaFormulario->preguntas as $indice => $pregunta)
+                            @php
+                                // Tipo seleccionado específicamente para esta plantilla.
+                                $tipoId = $pregunta->pivot?->tipo_respuesta_id;
+                                // Configuración correspondiente al tipo seleccionado.
+                                $configuracion = $pregunta->configuracionesRespuesta->firstWhere(
+                                    'tipo_respuesta_id',
+                                    $tipoId,
+                                );
+                                $tipo = $configuracion?->tipoRespuesta?->nombre;
+                                $escala = $configuracion?->escala;
+                                $opciones = $configuracion?->opcionesRespuesta ?? collect();
+                            @endphp
+                            <div wire:key="vista-pregunta-{{ $plantillaFormulario->id }}-{{ $pregunta->id }}"
+                                x-data="{ respuesta: '', seleccionadas: [] }"
+                                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                                {{-- NÚMERO Y PREGUNTA --}}
+                                <div class="flex items-start gap-4">
+                                    <x-numero-orden :numero="$indice + 1" />
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="text-base font-bold leading-7 text-slate-900">
+                                            {{ $pregunta->texto }}
+                                            @if ($pregunta->obligatoria)
+                                                <span class="text-red-500">*</span>
+                                            @endif
+                                        </h3>
+                                        <p class="mt-1 text-xs text-slate-400">
+                                            {{ $tipo ?? 'Sin tipo de respuesta asignado' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                {{--  RESPUESTAS --}}
+                                <div class="mt-6">
+                                    {{-- escala de 0 a 10 --}}
+                                    @if ($tipo === 'Escala de 0 a 10' && $escala)
+                                        <div class="space-y-3">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                @foreach (range($escala->minimo, $escala->maximo) as $numero)
+                                                    <button type="button"
+                                                        x-on:click="respuesta = '{{ $numero }}'"
+                                                        :class="respuesta === '{{ $numero }}'
+                                                            ?
+                                                            'bg-blue-200 !text-blue-950 border-blue-700' :
+                                                            'bg-blue-50 !text-blue-800 border-blue-200'"
+                                                        class="flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition hover:border-blue-500">
+                                                        {{ $numero }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                            {{--  opciones especiales --}}
+                                            <div class="flex flex-wrap gap-3">
+                                                @if ($escala->permite_no_sabe)
+                                                    <label
+                                                        class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                                        <input type="radio" name="escala-{{ $pregunta->id }}"
+                                                            value="no_sabe" x-model="respuesta"
+                                                            class="accent-blue-900" />
+                                                        No sabe
+                                                    </label>
+                                                @endif
+                                                @if ($escala->permite_no_aplica)
+                                                    <label
+                                                        class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                                        <input type="radio" name="escala-{{ $pregunta->id }}"
+                                                            value="no_aplica" x-model="respuesta"
+                                                            class="accent-blue-900" />
+                                                        No aplica
+                                                    </label>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        {{-- seleccion unica --}}
+                                    @elseif ($tipo === 'Selección única')
+                                        <div class="space-y-2">
+
+                                            @foreach ($opciones as $opcion)
+                                                <label
+                                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50">
+                                                    <input type="radio" name="unica-{{ $pregunta->id }}"
+                                                        value="{{ $opcion->valor }}" x-model="respuesta"
+                                                        class="h-4 w-4 accent-blue-900" />
+                                                    <span class="text-sm text-slate-700">
+                                                        {{ $opcion->etiqueta }}
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                        {{-- selección multiple --}}
+                                    @elseif ($tipo === 'Selección múltiple')
+                                        <div class="space-y-2">
+                                            @foreach ($opciones as $opcion)
+                                                <label
+                                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50">
+
+                                                    <input type="checkbox" value="{{ $opcion->valor }}"
+                                                        x-model="seleccionadas"
+                                                        class="h-4 w-4 rounded accent-blue-900" />
+
+                                                    <span class="text-sm text-slate-700">
+                                                        {{ $opcion->etiqueta }}
+                                                    </span>
+
+                                                </label>
+                                            @endforeach
+                                            <p class="text-xs text-slate-400">
+                                                Puede seleccionar varias opciones.
+                                            </p>
+                                        </div>
+                                        {{-- texto abierto --}}
+                                    @elseif ($tipo === 'Texto abierto')
+                                        <textarea x-model="respuesta" rows="4" placeholder="Escriba su respuesta aquí..."
+                                            class="w-full rounded-xl border border-slate-300 p-3 text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                    @else
+                                        <p class="text-sm text-amber-700">
+                                            Esta pregunta no tiene una configuración válida
+                                            para el tipo de respuesta seleccionado.
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-xl bg-white p-8 text-center text-sm text-slate-500">
+                                Esta plantilla todavía no tiene preguntas asignadas.
+                            </div>
+                        @endforelse
+
+
+                        {{-- PIE DEL FORMULARIO --}}
+                        @if ($plantillaFormulario->preguntas->isNotEmpty())
+                            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+                                <div class="flex items-center justify-between gap-3">
+
+                                    <p class="text-xs text-slate-500">
+                                        Gracias por compartir su opinión.
+                                    </p>
+
+                                    <flux:button type="button" variant="primary" disabled>
+                                        Enviar respuestas
+                                    </flux:button>
+
+                                </div>
+
+                            </div>
+                        @endif
+
+                    </div>
+                @endif
+            </div>
+            {{-- PIE FIJO DEL MODAL --}}
+            <div class="flex shrink-0 items-center justify-between border-t border-slate-200 pt-4">
+
+                <p class="text-xs text-slate-500">
+                    Vista previa de evaluación
+                </p>
+
+                <flux:button type="button" variant="primary" wire:click="cerrarFormulario">
+                    Cerrar vista previa
+                </flux:button>
+
+            </div>
 
         </div>
     </flux:modal>

@@ -46,6 +46,10 @@ class Plantillas extends Component
     // ordenar preguntas
     public array $ordenPreguntas = [];
 
+    public bool $mostrarModalFormulario = false;
+
+    public ?Plantilla $plantillaFormulario = null;
+
     public function crearPlantilla(): void
     {
         $this->limpiarFormulario();
@@ -501,6 +505,27 @@ class Plantillas extends Component
         );
     }
 
+    // ver formulario borrador
+    public function verFormulario(int $plantillaId): void
+    {
+        $this->plantillaFormulario = Plantilla::with([
+            'preguntas' => function($query){
+                $query->with([
+                    'configuracionesRespuesta.tipoRespuesta',
+                    'configuracionesRespuesta.escala',
+                    'configuracionesRespuesta.opcionesRespuesta',
+                ]);
+            }
+        ])->findOrFail($plantillaId);
+
+        $this->mostrarModalFormulario = true;
+    }
+    // cerrar formulario
+    public function cerrarFormulario(): void
+    {
+        $this->mostrarModalFormulario = false;
+        $this->plantillaFormulario = null;
+    }
 
     public function render()
     {
