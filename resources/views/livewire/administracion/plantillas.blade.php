@@ -826,7 +826,49 @@
                                 $opciones = $configuracion?->opcionesRespuesta ?? collect();
                             @endphp
                             <div wire:key="vista-pregunta-{{ $plantillaFormulario->id }}-{{ $pregunta->id }}"
-                                x-data="{ respuesta: '', seleccionadas: [] }"
+                                x-data="{
+                                    respuesta: '',
+                                    seleccionadas: [],
+                                    textosAdicionales: {},
+                                    opcionExcluyente: null,
+                                
+                                    seleccionarMultiple(id, excluyente) {
+                                        id = String(id);
+                                
+                                        if (excluyente) {
+                                            if (this.seleccionadas.includes(id)) {
+                                                this.seleccionadas = [];
+                                                this.opcionExcluyente = null;
+                                            } else {
+                                                this.seleccionadas = [id];
+                                                this.opcionExcluyente = id;
+                                            }
+                                        } else {
+                                            if (this.opcionExcluyente !== null) {
+                                                return;
+                                            }
+                                
+                                            if (this.seleccionadas.includes(id)) {
+                                                this.seleccionadas = this.seleccionadas.filter(
+                                                    valor => valor !== id
+                                                );
+                                            } else {
+                                                this.seleccionadas.push(id);
+                                            }
+                                        }
+                                
+                                        Object.keys(this.textosAdicionales).forEach(key => {
+                                            if (!this.seleccionadas.includes(key)) {
+                                                delete this.textosAdicionales[key];
+                                            }
+                                        });
+                                    },
+                                
+                                    seleccionarUnica(id) {
+                                        this.respuesta = String(id);
+                                        this.textosAdicionales = {};
+                                    }
+                                }"
                                 class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                                 {{-- NÚMERO Y PREGUNTA --}}
                                 <div class="flex items-start gap-4">
@@ -884,42 +926,122 @@
                                             </div>
                                         </div>
                                         {{-- seleccion unica --}}
+
+                                        {{-- SELECCIÓN ÚNICA --}}
                                     @elseif ($tipo === 'Selección única')
-                                        <div class="space-y-2">
+                                        <div class="space-y-3">
 
                                             @foreach ($opciones as $opcion)
-                                                <label
-                                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50">
-                                                    <input type="radio" name="unica-{{ $pregunta->id }}"
-                                                        value="{{ $opcion->valor }}" x-model="respuesta"
-                                                        class="h-4 w-4 accent-blue-900" />
-                                                    <span class="text-sm text-slate-700">
-                                                        {{ $opcion->etiqueta }}
-                                                    </span>
-                                                </label>
+                                                <div wire:key="unica-{{ $pregunta->id }}-{{ $opcion->id }}">
+
+                                                    <label
+                                                        class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-blue-300 hover:bg-blue-50"
+                                                        :class="respuesta === '{{ $opcion->id }}'
+                                                            ?
+                                                            'border-blue-400 bg-blue-50' :
+                                                            ''">
+
+                                                        <input type="radio" name="unica-{{ $pregunta->id }}"
+                                                            value="{{ $opcion->id }}" x-model="respuesta"
+                                                            class="h-4 w-4 accent-blue-900" />
+
+                                                        <span class="text-sm font-medium text-slate-700">
+                                                            {{ $opcion->etiqueta }}
+                                                        </span>
+
+                                                    </label>
+
+                                                    {{-- TEXTO ADICIONAL --}}
+                                                    @if ($opcion->habilita_texto)
+                                                        <div x-show="respuesta === '{{ $opcion->id }}'" x-cloak
+                                                            x-transition
+                                                            class="mt-3 ml-7 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+
+                                                            <label
+                                                                class="mb-2 block text-sm font-semibold text-blue-900">
+
+                                                                {{ $opcion->etiqueta_texto_adicional ?: 'Especifique su respuesta' }}
+
+                                                            </label>
+
+                                                            <textarea x-model="textosAdicionales['{{ $opcion->id }}']" rows="3" placeholder="Escriba su respuesta..."
+                                                                class="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500"></textarea>
+
+                                                        </div>
+                                                    @endif
+
+                                                </div>
                                             @endforeach
+
                                         </div>
-                                        {{-- selección multiple --}}
+
+
+                                        {{-- SELECCIÓN MÚLTIPLE --}}
                                     @elseif ($tipo === 'Selección múltiple')
-                                        <div class="space-y-2">
+                                        <div class="space-y-3">
+
                                             @foreach ($opciones as $opcion)
-                                                <label
-                                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50">
+                                                <div wire:key="multiple-{{ $pregunta->id }}-{{ $opcion->id }}">
 
-                                                    <input type="checkbox" value="{{ $opcion->valor }}"
-                                                        x-model="seleccionadas"
-                                                        class="h-4 w-4 rounded accent-blue-900" />
+                                                    <label
+                                                        class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 transition"
+                                                        :class="{
+                                                            'border-blue-400 bg-blue-50': seleccionadas.includes(
+                                                                '{{ $opcion->id }}'),
+                                                        
+                                                            'cursor-not-allowed opacity-50': opcionExcluyente !==
+                                                                null &&
+                                                                opcionExcluyente !== '{{ $opcion->id }}',
+                                                        
+                                                            'hover:border-blue-300 hover:bg-blue-50': opcionExcluyente ===
+                                                                null
+                                                        }">
 
-                                                    <span class="text-sm text-slate-700">
-                                                        {{ $opcion->etiqueta }}
-                                                    </span>
+                                                        <input type="checkbox" value="{{ $opcion->id }}"
+                                                            :checked="seleccionadas.includes('{{ $opcion->id }}')"
+                                                            :disabled="opcionExcluyente !== null &&
+                                                                opcionExcluyente !== '{{ $opcion->id }}'"
+                                                            x-on:change="seleccionarMultiple(
+                                                            '{{ $opcion->id }}',
+                                                            @js((bool) $opcion->es_excluyente)
+                                                        )"
+                                                            class="h-4 w-4 rounded accent-blue-900" />
 
-                                                </label>
+                                                        <span class="flex-1 text-sm font-medium text-slate-700">
+                                                            {{ $opcion->etiqueta }}
+                                                        </span>
+
+                                                    </label>
+
+                                                    {{-- TEXTO ADICIONAL --}}
+                                                    @if ($opcion->habilita_texto)
+                                                        <div x-show="seleccionadas.includes('{{ $opcion->id }}')"
+                                                            x-cloak x-transition
+                                                            class="mt-3 ml-7 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+
+                                                            <label
+                                                                class="mb-2 block text-sm font-semibold text-blue-900">
+
+                                                                {{ $opcion->etiqueta_texto_adicional ?: 'Especifique su respuesta' }}
+
+                                                            </label>
+
+                                                            <textarea x-model="textosAdicionales['{{ $opcion->id }}']" rows="3" placeholder="Escriba su respuesta..."
+                                                                class="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500"></textarea>
+
+                                                        </div>
+                                                    @endif
+
+                                                </div>
                                             @endforeach
+
                                             <p class="text-xs text-slate-400">
-                                                Puede seleccionar varias opciones.
+                                                Puede seleccionar varias opciones, excepto aquellas que son excluyentes.
                                             </p>
+
                                         </div>
+
+
                                         {{-- texto abierto --}}
                                     @elseif ($tipo === 'Texto abierto')
                                         <textarea x-model="respuesta" rows="4" placeholder="Escriba su respuesta aquí..."
