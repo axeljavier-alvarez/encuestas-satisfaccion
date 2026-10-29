@@ -1,73 +1,109 @@
+
 <x-layouts::auth :title="'Iniciar sesión'">
+
     <div class="flex flex-col gap-6">
-        <div>
-            <p class="text-sm font-bold uppercase tracking-[0.25em] text-blue-700">
-                Acceso al sistema
-            </p>
 
-            <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">
-                Iniciar sesión
-            </h2>
+        <!-- Encabezado reutilizable -->
+        <x-auth-brand />
 
-            <p class="mt-3 text-sm leading-6 text-slate-500">
-                Ingrese su correo electrónico y contraseña para consultar
-                las evaluaciones que tiene asignadas.
-            </p>
-        </div>
+        <!-- Título -->
+        <h2 class="text-base font-semibold text-[#171f61]">
+            Iniciar sesión
+        </h2>
 
-        {{-- Mensajes del sistema --}}
+        <!-- Mensajes del sistema -->
         <x-auth-session-status
             class="text-center"
             :status="session('status')"
         />
 
+        <!-- Formulario -->
         <form
             method="POST"
             action="{{ route('login.store') }}"
-            class="flex flex-col gap-5"
+            class="flex flex-col gap-4"
         >
             @csrf
 
-            {{-- Correo electrónico --}}
-            <flux:input
+            <!-- Correo -->
+            <x-auth-input
                 name="email"
-                label="Correo electrónico"
-                :value="old('email')"
                 type="email"
+                icon="user"
+                placeholder="Correo electrónico"
+                autocomplete="email"
                 required
                 autofocus
-                autocomplete="email"
-                placeholder="usuario@empresa.com"
             />
 
-            {{-- Contraseña --}}
-            <flux:input
+            <!-- Contraseña -->
+            <x-auth-input
                 name="password"
-                label="Contraseña"
                 type="password"
-                required
+                icon="lock"
+                placeholder="Contraseña"
                 autocomplete="current-password"
-                placeholder="Ingrese su contraseña"
-                viewable
+                required
             />
 
-            {{-- Recordar sesión --}}
-            <flux:checkbox
-                name="remember"
-                label="Recordar mi sesión"
-                :checked="old('remember')"
-            />
+            <!-- Opciones -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
 
-            <flux:button
-                variant="primary"
-                type="submit"
-                class="w-full"
-                data-test="login-button"
-            >
-                Ingresar al portal
-            </flux:button>
+                <label class="flex items-center gap-2 text-sm text-[#626a9e]">
+
+                    <input
+                        type="checkbox"
+                        name="remember"
+                        value="1"
+                        class="h-4 w-4 accent-[#273385]"
+                        @checked(old('remember', true))
+                    />
+
+                    Recordarme
+
+                </label>
+
+                @if (Route::has('password.request'))
+                    <a
+                        href="{{ route('password.request') }}"
+                        class="text-sm text-[#626a9e] hover:underline"
+                    >
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                @endif
+
+            </div>
+
+            <!-- Botón -->
+            <div class="pt-5 text-center">
+
+                <button
+                    type="submit"
+                    class="inline-flex h-12 min-w-[185px] items-center justify-center rounded-sm bg-[#273385] px-8 font-semibold text-white hover:bg-[#1b2566]"
+                    data-test="login-button"
+                >
+                    Iniciar sesión
+                </button>
+
+                @if (Route::has('register'))
+                    <p class="mt-5 text-sm text-[#626a9e]">
+
+                        ¿No tienes cuenta?
+
+                        <a
+                            href="{{ route('register') }}"
+                            class="hover:underline"
+                        >
+                            Regístrate
+                        </a>
+
+                    </p>
+                @endif
+
+            </div>
+
         </form>
 
-        
     </div>
+
 </x-layouts::auth>
