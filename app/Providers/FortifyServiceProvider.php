@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
+use App\Models\User;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
+
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -29,6 +33,38 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureAuthentication();
+
+    }
+
+    /* configurar la autenticación para email y password */
+    /**
+     * Configure custom authentication.
+     */
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+
+            // Buscar usuario por correo electrónico
+            $user = User::where('email', $request->input('email'))->first();
+
+            // Correo electrónico no registrado
+            if (! $user) {
+                throw ValidationException::withMessages([
+                    'email' => 'El correo electrónico no se encuentra registrado.',
+                ]);
+            }
+
+            // Contraseña incorrecta
+            if (! Hash::check($request->input('password'), $user->password)) {
+                throw ValidationException::withMessages([
+                    'password' => 'La contraseña proporcionada es incorrecta.',
+                ]);
+            }
+
+            // Autenticación correcta
+            return $user;
+        });
     }
 
     /**

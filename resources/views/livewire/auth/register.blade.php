@@ -1,86 +1,49 @@
-
 <x-layouts::auth :title="'Registrarse'">
 
     <div class="flex flex-col gap-6">
 
         <!-- Encabezado -->
-        <x-auth-header
-            title="Crear una cuenta"
-            description="Ingresa tus datos a continuación para crear tu cuenta"
-        />
+        <x-auth-brand title="Crear una cuenta" description="Ingrese sus datos a continuación para crear su cuenta" />
 
         <!-- Estado de sesión -->
-        <x-auth-session-status
-            class="text-center"
-            :status="session('status')"
-        />
+        <x-auth-session-status class="text-center" :status="session('status')" />
 
-        <form
-            method="POST"
-            action="{{ route('register.store') }}"
-            class="flex flex-col gap-6"
-        >
+        <!-- Formulario -->
+        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
             @csrf
 
             <!-- Nombre completo -->
-            <flux:input
-                name="name"
-                label="Nombre completo"
-                :value="old('name')"
-                type="text"
-                required
-                autofocus
-                autocomplete="name"
-                placeholder="Ingresa tu nombre completo"
-            />
+            <x-auth-input name="name" type="text" icon="user" placeholder="Nombre completo" autocomplete="name"
+                required autofocus />
 
             <!-- Correo electrónico -->
-            <flux:input
-                name="email"
-                label="Correo electrónico"
-                :value="old('email')"
-                type="email"
-                required
-                autocomplete="email"
-                placeholder="correo@ejemplo.com"
-            />
+            <x-auth-input name="email" type="email" icon="mail" placeholder="Correo electrónico"
+                autocomplete="email" required />
 
             <!-- Contraseña -->
-            <flux:input
-                name="password"
-                label="Contraseña"
-                type="password"
-                required
-                autocomplete="new-password"
-                placeholder="Ingresa tu contraseña"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
+            <x-auth-input name="password" type="password" icon="lock" placeholder="Contraseña"
+                autocomplete="new-password" required />
 
             <!-- Confirmar contraseña -->
-            <flux:input
-                name="password_confirmation"
-                label="Confirmar contraseña"
-                type="password"
-                required
-                autocomplete="new-password"
-                placeholder="Confirma tu contraseña"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
+            <x-auth-input name="password_confirmation" type="password" icon="lock" placeholder="Confirmar contraseña"
+                autocomplete="new-password" required />
 
             <!-- Botón de registro -->
             <div class="flex items-center justify-end">
 
-                <flux:button
+                {{-- <flux:button
                     type="submit"
-                    variant="primary"
+                    variant="municipal"
                     class="w-full"
                     data-test="register-user-button"
                 >
                     Crear cuenta
-                </flux:button>
-
+                </flux:button> --}}
+                <button type="submit"
+                    class="inline-flex h-12 w-full items-center justify-center rounded-sm bg-[#273385] px-8 font-semibold text-white hover:bg-[#1b2566]"
+                    data-test="register-user-button">
+                    Crear cuenta
+                </button>
             </div>
 
         </form>
@@ -93,6 +56,7 @@
             <flux:link :href="route('login')" wire:navigate>
                 Iniciar sesión
             </flux:link>
+
 
         </div>
 
