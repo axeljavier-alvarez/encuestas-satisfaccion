@@ -4,12 +4,8 @@
 
 @if ($sidebar)
     <flux:sidebar.header>
-        <div class="flex w-full items-center justify-center px-2 py-3">
-            <img
-                src="{{ asset('images/logo_gerencia.png') }}"
-                alt="Gerencia de Desarrollo Social"
-                class="block h-auto w-full max-w-[180px] object-contain"
-            />
+        <div class="flex w-full items-center justify-center px-2 py-1">
+            <x-logo class="block h-auto w-full max-w-[180px]" />
         </div>
 
         <flux:sidebar.collapse class="lg:hidden" />
