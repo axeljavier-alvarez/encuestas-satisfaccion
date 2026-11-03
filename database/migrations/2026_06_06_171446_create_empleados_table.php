@@ -23,11 +23,6 @@ return new class extends Migration
                 ->constrained('puestos')
                 ->restrictOnDelete();
 
-            $table->foreignId('jefe_id')
-                ->nullable()
-                ->constrained('empleados')
-                ->nullOnDelete();
-
             $table->boolean('activo')->default(true);
 
             $table->timestamps();

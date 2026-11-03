@@ -2,7 +2,6 @@
 
 use App\Livewire\Administracion\Empleados;
 use App\Livewire\Administracion\Puestos;
-use App\Livewire\Administracion\RelacionesPuestos;
 use App\Livewire\Administracion\Plantillas;
 use App\Livewire\Evaluaciones\MisResultados;
 use App\Livewire\Evaluaciones\ResponderEvaluacion;
@@ -51,10 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 'empleados',
                 Empleados::class
             )->name('empleados');
-            Route::get(
-                'relaciones-puestos',
-                RelacionesPuestos::class
-            )->name('relaciones-puestos');
+            
             Route::get(
                 'seguimiento-evaluaciones',
                 SeguimientoEvaluaciones::class

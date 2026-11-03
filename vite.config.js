@@ -3,6 +3,8 @@ import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+    // base: '/encuestas-update/public/build/',
+    base: '/encuestas-satisfaccion/build/',
     plugins: [
         laravel({
             input: [

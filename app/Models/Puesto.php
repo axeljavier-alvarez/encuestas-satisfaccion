@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Empleado;
 use App\Models\Plantilla;
-use App\Models\RelacionPuesto;
 use Illuminate\Database\Eloquent\Model;
 
 class Puesto extends Model
@@ -28,13 +27,5 @@ class Puesto extends Model
         return $this->hasMany(Empleado::class);
     }
 
-    public function relacionesComoEvaluador()
-    {
-        return $this->hasMany(RelacionPuesto::class, 'puesto_evaluador_id');
-    }
-
-    public function relacionesComoEvaluado()
-    {
-        return $this->hasMany(RelacionPuesto::class, 'puesto_evaluado_id');
-    }
+    
 }

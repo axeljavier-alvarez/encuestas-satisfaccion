@@ -14,10 +14,6 @@ return new class extends Migration
         Schema::create('puestos', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('plantilla_id')
-                ->constrained('plantillas')
-                ->restrictOnDelete();
-
             $table->string('nombre', 150);
             $table->string('codigo', 20)->unique();
             $table->boolean('activo')->default(true);

@@ -1492,6 +1492,7 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                 fn (bool $exists) => [
                     'nombre' => $plantilla['nombre'],
                     'descripcion' => $plantilla['descripcion'],
+                    'estado' => 'borrador',
                     'activo' => true,
                     'updated_at' => now(),
                 ] + ($exists ? [] : ['created_at' => now()])
