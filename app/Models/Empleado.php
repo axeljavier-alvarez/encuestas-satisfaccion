@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Evaluacion;
-use App\Models\Puesto;
 use Illuminate\Database\Eloquent\Model;
 
 class Empleado extends Model
@@ -13,9 +11,15 @@ class Empleado extends Model
     protected $fillable = [
         'user_id',
         'puesto_id',
-        'jefe_id',
         'activo',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'activo' => 'boolean',
+        ];
+    }
 
     public function usuario()
     {
@@ -27,24 +31,13 @@ class Empleado extends Model
         return $this->belongsTo(Puesto::class);
     }
 
-    public function jefe()
+    public function plantillas()
     {
-        return $this->belongsTo(Empleado::class, 'jefe_id');
+        return $this->belongsToMany(
+            Plantilla::class,
+            'plantilla_empleado',
+            'empleado_id',
+            'plantilla_id'
+        )->withTimestamps();
     }
-
-    public function subalternos()
-    {
-        return $this->hasMany(Empleado::class, 'jefe_id');
-    }
-
-    public function evaluacionesPorResponder()
-    {
-        return $this->hasMany(Evaluacion::class, 'empleado_evaluador_id');
-    }
-
-    public function evaluacionesRecibidas()
-    {
-        return $this->hasMany(Evaluacion::class, 'empleado_evaluado_id');
-    }
-
 }

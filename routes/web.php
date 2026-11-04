@@ -3,9 +3,6 @@
 use App\Livewire\Administracion\Empleados;
 use App\Livewire\Administracion\Puestos;
 use App\Livewire\Administracion\Plantillas;
-use App\Livewire\Evaluaciones\MisResultados;
-use App\Livewire\Evaluaciones\ResponderEvaluacion;
-use App\Livewire\Administracion\SeguimientoEvaluaciones;
 use Illuminate\Support\Facades\Route;
 // preguntas
 use App\Livewire\Administracion\Preguntas;
@@ -23,17 +20,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
      */
     Route::view('dashboard', 'dashboard')
         ->name('dashboard');
-
-    Route::get(
-        'evaluaciones/{evaluacion}/responder',
-        ResponderEvaluacion::class
-    )->name('evaluaciones.responder');
-
-    Route::get(
-        'resultados',
-        MisResultados::class
-    )->name('evaluaciones.resultados');
-
     /*
      * Pantallas exclusivas para usuarios administradores.
      */
@@ -51,10 +37,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Empleados::class
             )->name('empleados');
             
-            Route::get(
-                'seguimiento-evaluaciones',
-                SeguimientoEvaluaciones::class
-            )->name('seguimiento-evaluaciones');
             Route::get(
                 'plantillas',
                 Plantillas::class

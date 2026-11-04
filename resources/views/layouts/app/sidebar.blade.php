@@ -126,34 +126,15 @@
         <flux:sidebar.nav>
 
             {{-- Portal de evaluaciones --}}
-            <flux:sidebar.group heading="Portal de evaluaciones" class="grid">
+            <flux:sidebar.group heading="Portal de encuestas" class="grid">
                 <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
                     wire:navigate>
-                    Mis evaluaciones
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="chart-bar" :href="route('evaluaciones.resultados')"
-                    :current="request()->routeIs('evaluaciones.resultados')" wire:navigate>
-                    Mis resultados
+                    Resumen
                 </flux:sidebar.item>
             </flux:sidebar.group>
 
-            {{-- Gestión de Contenido / Preguntas (Visible para creadores y admins) --}}
-            {{--
-                <flux:sidebar.group
-                    heading="Banco de preguntas"
-                    class="grid"
-                >
-                    <flux:sidebar.item
-                        icon="question-mark-circle"
-                        :href="route('administracion.preguntas')"
-                        :current="request()->routeIs('administracion.preguntas')"
-                        wire:navigate
-                    >
-                        Preguntas
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-                --}}
+
+
 
             {{-- Administración --}}
             @if (auth()->user()->es_admin)

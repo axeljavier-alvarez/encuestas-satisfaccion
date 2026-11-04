@@ -17,6 +17,10 @@ return new class extends Migration
             //     ->constrained('pregunta_tipo_respuesta')
             //     ->cascadeOnDelete();
 
+            $table->boolean('es_excluyente')->default(false);
+            $table->boolean('habilita_texto')->default(false);
+            $table->string('etiqueta_texto_adicional', 150)->nullable();
+            
             $table->foreignId('pregunta_tipo_respuesta_id')
                 ->constrained('pregunta_tipo_respuesta')
                 ->restrictOnDelete();

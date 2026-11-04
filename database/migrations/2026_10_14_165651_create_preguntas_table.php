@@ -14,6 +14,8 @@ return new class extends Migration
             // $table->foreignId('factor_id')
             //     ->constrained('factores')
             //     ->cascadeOnDelete();
+            $table->string('codigo', 20)->nullable()->unique();
+
             $table->foreignId('factor_id')
                 ->constrained('factores')
                 ->restrictOnDelete();
@@ -29,15 +31,10 @@ return new class extends Migration
 
             $table->boolean('activo')->default(true);
 
-            /* $table->foreignId('tipo_respuesta_id')
-                ->nullable()
-                ->constrained('tipos_respuesta')
-                ->restrictOnDelete(); */
+            $table->boolean('obligatoria')->default(false);
 
-            /*$table->foreignId('escala_id')
-                ->nullable()
-                ->constrained('escalas')
-                ->restrictOnDelete();*/
+            $table->boolean('es_predeterminada')
+                ->default(false);
 
             $table->timestamps();
         });

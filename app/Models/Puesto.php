@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Empleado;
-use App\Models\Plantilla;
 use Illuminate\Database\Eloquent\Model;
 
 class Puesto extends Model
@@ -11,21 +9,20 @@ class Puesto extends Model
     protected $table = 'puestos';
 
     protected $fillable = [
-        'plantilla_id',
         'nombre',
         'codigo',
         'activo',
     ];
 
-    public function plantilla()
+    protected function casts(): array
     {
-        return $this->belongsTo(Plantilla::class);
+        return [
+            'activo' => 'boolean',
+        ];
     }
 
     public function empleados()
     {
         return $this->hasMany(Empleado::class);
     }
-
-    
 }

@@ -54,7 +54,7 @@ class Pregunta extends Model
             'pregunta_id',
             'plantilla_id'
         )
-            ->withPivot('orden')
+            ->withPivot('orden', 'tipo_respuesta_id')
             ->withTimestamps();
     }
 

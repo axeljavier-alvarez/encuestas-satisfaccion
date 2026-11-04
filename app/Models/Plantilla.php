@@ -2,9 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Dimension;
-use App\Models\Evaluacion;
-use App\Models\Puesto;
 use Illuminate\Database\Eloquent\Model;
 
 class Plantilla extends Model
@@ -15,25 +12,27 @@ class Plantilla extends Model
         'codigo',
         'nombre',
         'descripcion',
+        'estado',
         'activo',
     ];
 
-    // public function dimensiones()
-    // {
-    //     return $this->hasMany(Dimension::class);
-    // }
-
-    public function puestos()
+    protected function casts(): array
     {
-        return $this->hasMany(Puesto::class);
+        return [
+            'activo' => 'boolean',
+        ];
     }
 
-    public function evaluaciones()
+    public function empleados()
     {
-        return $this->hasMany(Evaluacion::class);
+        return $this->belongsToMany(
+            Empleado::class,
+            'plantilla_empleado',
+            'plantilla_id',
+            'empleado_id'
+        )->withTimestamps();
     }
 
-    // relacion de plantillas con preguntas
     public function preguntas()
     {
         return $this->belongsToMany(
@@ -42,8 +41,8 @@ class Plantilla extends Model
             'plantilla_id',
             'pregunta_id'
         )
-            ->withPivot('orden', 'tipo_respuesta_id')
-            ->withTimestamps()
-            ->orderByPivot('orden');
+        ->withPivot('orden', 'tipo_respuesta_id')
+        ->withTimestamps()
+        ->orderByPivot('orden');
     }
 }
