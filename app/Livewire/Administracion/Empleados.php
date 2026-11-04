@@ -2,304 +2,366 @@
 
 namespace App\Livewire\Administracion;
 
-use App\Models\Empleado;
-use App\Models\Puesto;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use App\Models\{Empleado, Puesto, User};
+use Illuminate\Support\Facades\{DB, Hash};
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
+use Flux\Flux;
+
 
 class Empleados extends Component
 {
+    use WithPagination;
+    #[Url]
     public string $buscar = '';
-
+    public string $filtroEstado = 'todos';
+    public string $filtroAcceso = 'todos';
+    public int $porPagina = 10;
+    // empleados
     public bool $mostrarModal = false;
-
     public ?int $empleadoId = null;
-
-    public ?int $usuarioId = null;
-
     public string $nombre = '';
-
-    public string $correo = '';
-
+    public string $email = '';
     public string $password = '';
-
     public string $password_confirmation = '';
-
     public ?int $puestoId = null;
-
-    public ?int $jefeId = null;
-
-    public bool $activo = true;
-
     public bool $esAdmin = false;
+    public bool $activo = true;
+    // puestos
+    public bool $mostrarModalPuestos = false;
+    public ?int $puestoEditarId = null;
+    public string $puestoNombre = '';
+    public string $puestoCodigo = '';
+    public bool $puestoActivo = true;
 
-    /**
-     * Abre el formulario vacío para registrar un empleado.
-     */
     public function crear(): void
     {
-        $this->limpiarFormulario();
-
+        $this->limpiarEmpleado();
         $this->mostrarModal = true;
     }
 
-    /**
-     * Carga la información de un empleado existente.
-     */
-    public function editar(int $empleadoId): void
+    public function editar(int $id): void
     {
-        $empleado = Empleado::query()
-            ->with('usuario')
-            ->findOrFail($empleadoId);
-
+        $empleado = Empleado::with('usuario')->findOrFail($id);
+        $this->limpiarEmpleado();
         $this->empleadoId = $empleado->id;
-        $this->usuarioId = $empleado->user_id;
         $this->nombre = $empleado->usuario->name;
-        $this->correo = $empleado->usuario->email;
+        $this->email = $empleado->usuario->email;
         $this->puestoId = $empleado->puesto_id;
-        $this->jefeId = $empleado->jefe_id;
-        $this->activo = (bool) $empleado->activo;
         $this->esAdmin = (bool) $empleado->usuario->es_admin;
-
-        /*
-         * Al editar, la contraseña se deja vacía.
-         * Solo se modifica si el administrador escribe una nueva.
-         */
-        $this->password = '';
-        $this->password_confirmation = '';
-
+        $this->activo = (bool) $empleado->activo;
         $this->mostrarModal = true;
     }
 
-    /**
-     * Guarda un empleado nuevo o actualiza uno existente.
-     */
     public function guardar(): void
     {
-        $reglasPassword = $this->empleadoId
-            ? ['nullable', 'string', 'min:8', 'confirmed']
-            : ['required', 'string', 'min:8', 'confirmed'];
-
+        $empleado = $this->empleadoId ? Empleado::with('usuario')->findOrFail($this->empleadoId) : null;
+        // Al editar, ignoramos el correo del mismo usuario en la regla unique.
+        $usuarioId = $empleado?->user_id;
+        // Solo continuamos si los datos cumplen las reglas
         $datos = $this->validate([
-            'nombre' => [
-                'required',
-                'string',
-                'max:150',
-            ],
-            'correo' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($this->usuarioId),
-            ],
-            'password' => $reglasPassword,
-            'puestoId' => [
-                'required',
-                'exists:puestos,id',
-            ],
-            'jefeId' => [
-                'nullable',
-                'exists:empleados,id',
-                Rule::notIn([$this->empleadoId]),
-            ],
-            'activo' => [
-                'boolean',
-            ],
-            'esAdmin' => [
-                'boolean',
-            ],
-
+            'nombre' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($usuarioId)],
+            'password' => [$empleado ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
+            'puestoId' => ['required', 'integer', Rule::exists('puestos', 'id')->where('activo', true)],
+            'esAdmin' => ['boolean'],
+            'activo' => ['boolean'],
         ], [
-            'nombre.required' => 'El nombre del empleado es obligatorio.',
-            'correo.required' => 'El correo electrónico es obligatorio.',
-            'correo.email' => 'Ingrese un correo electrónico válido.',
-            'correo.unique' => 'Ya existe un usuario con este correo electrónico.',
-            'password.required' => 'La contraseña inicial es obligatoria.',
+            'nombre.required' => 'Ingrese el nombre completo.',
+            'email.required' => 'Ingrese el correo electrónico.',
+            'email.unique' => 'El correo ya está registrado.',
+            'password.required' => 'Ingrese una contraseña.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
             'puestoId.required' => 'Seleccione un puesto.',
-            'puestoId.exists' => 'El puesto seleccionado no es válido.',
-            'jefeId.exists' => 'El jefe inmediato seleccionado no es válido.',
-            'jefeId.not_in' => 'Un empleado no puede ser su propio jefe inmediato.',
+            'puestoId.exists' => 'Seleccione un puesto activo.',
         ]);
-
-        $esEdicion = $this->empleadoId !== null;
-
-        if ($this->usuarioId === Auth::id() && ! $datos['esAdmin']) {
-            $this->addError(
-                'esAdmin',
-                'No puede retirar su propio permiso administrativo.'
-            );
-
-            return;
+        if ($usuarioId === auth()->id() && (!$this->esAdmin || !$this->activo)) {
+            throw ValidationException::withMessages([
+                'esAdmin' => 'No puede quitarse permisos administrativos ni desactivar su propia cuenta.',
+            ]);
         }
+        $esEdicion = $empleado !== null;
+        // si falla una de las dos tablas se revierte todo
+        DB::transaction(function () use ($empleado, $datos) {
+            if ($empleado) {
+                $usuario = $empleado->usuario;
+                $usuario->name = trim($datos['nombre']);
+                $usuario->email = trim($datos['email']);
+                $usuario->es_admin = $datos['esAdmin'];
+                // Contraseña opcional al editar: solo cambia si se escribió una nueva.
+                if (filled($datos['password'])) {
+                    $usuario->password = Hash::make($datos['password']);
+                }
+                $usuario->save();
+                $empleado->update([
+                    'puesto_id' => $datos['puestoId'],
+                    'activo' => $datos['activo']
+                ]);
+            } else {
+                $usuario = User::create([
+                    'name' => trim($datos['nombre']),
+                    'email' => trim($datos['email']),
+                    'password' => Hash::make($datos['password']),
+                    'es_admin' => $datos['esAdmin'],
+                ]);
 
-        DB::transaction(function () use ($datos) {
-            /*
-             * Crea o actualiza la cuenta utilizada para iniciar sesión.
-             */
-            $usuario = $this->usuarioId
-                ? User::findOrFail($this->usuarioId)
-                : new User();
-
-            $usuario->name = trim($datos['nombre']);
-            $usuario->email = mb_strtolower(trim($datos['correo']));
-            $usuario->es_admin = $datos['esAdmin'];
-
-            /*
-             * Al editar, la contraseña únicamente cambia
-             * cuando se escribe una nueva.
-             */
-            if ($this->password !== '') {
-                $usuario->password = $datos['password'];
-            }
-
-            $usuario->save();
-
-            /*
-             * Crea o actualiza los datos organizacionales.
-             */
-            Empleado::updateOrCreate(
-                [
-                    'id' => $this->empleadoId,
-                ],
-                [
+                Empleado::create([
                     'user_id' => $usuario->id,
                     'puesto_id' => $datos['puestoId'],
-                    'jefe_id' => $datos['jefeId'] ?: null,
                     'activo' => $datos['activo'],
-                ]
-            );
+                ]);
+            }
         });
-
         $this->cerrarModal();
-
-        session()->flash(
-            'mensaje',
-            $esEdicion
-                ? 'El empleado fue actualizado correctamente.'
-                : 'El empleado fue creado correctamente.'
-        );
+        session()->flash('mensaje', $esEdicion ? 'Empleado actualizado correctamente.' : 'Empleado creado correctamente.');
     }
-
-    /**
-     * Activa o desactiva un empleado sin eliminarlo.
-     */
-    public function cambiarEstado(int $empleadoId): void
+    /* activar desactivar estado del empleado */
+    public function cambiarEstadoEmpleado(int $empleadoId): void
     {
-        $empleado = Empleado::findOrFail($empleadoId);
-
-        $empleado->update([
-            'activo' => ! $empleado->activo,
-        ]);
-
+        DB::transaction(function () use ($empleadoId) {
+            $empleado = Empleado::findOrFail($empleadoId);
+            // evitar que el administrador desactive su propia cuenta
+            if ($empleado->user_id === auth()->id() && $empleado->activo) {
+                throw ValidationException::withMessages([
+                    'estadoEmpleado' => 'No puede desactivar su propia cuenta.',
+                ]);
+            }
+            // para reactivar un empleado su puesto debe estar activo
+            if (
+                !$empleado->activo && !$empleado->puesto()->where('activo', true)->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'estadoEmpleado' => 'Active primero el puesto del empleado.'
+                ]);
+            }
+            // invertir el estado actual
+            $empleado->activo = !$empleado->activo;
+            $empleado->save();
+        });
         session()->flash(
             'mensaje',
-            $empleado->activo
-                ? 'El empleado fue activado correctamente.'
-                : 'El empleado fue desactivado correctamente.'
+            'Estado del empleado actualizado correctamente.'
         );
     }
-
-    /**
-     * Cierra el formulario modal.
-     */
+    /* ocultar formulario y limpiar campos */
     public function cerrarModal(): void
     {
         $this->mostrarModal = false;
+        $this->limpiarEmpleado();
+    }
+    /* limpiar empleado */
+    private function limpiarEmpleado(): void
+    {
+        $this->reset(['empleadoId', 'nombre', 'email', 'password', 'password_confirmation', 'puestoId', 'esAdmin', 'activo']);
 
-        $this->limpiarFormulario();
+        $this->activo = true;
+
+        $this->resetValidation();
+    }
+    /* preparar y abrir modal para puestos */
+    public function gestionarPuestos(): void
+    {
+        $this->limpiarPuesto();
+        $this->mostrarModalPuestos = true;
+    }
+
+    public function crearPuesto(): void
+    {
+        $this->limpiarPuesto();
+    }
+
+    public function editarPuesto(int $id): void
+    {
+        $puesto = Puesto::findOrFail($id);
+        $this->limpiarPuesto();
+        $this->puestoEditarId = $puesto->id;
+        $this->puestoNombre = $puesto->nombre;
+        $this->puestoCodigo = $puesto->codigo;
+        $this->puestoActivo = (bool) $puesto->activo;
+    }
+
+    public function guardarPuesto(): void
+    {
+        $datos = $this->validate([
+            'puestoNombre' => ['required', 'string', 'max:150'],
+            'puestoCodigo' => ['required', 'string', 'max:20', Rule::unique('puestos', 'codigo')->ignore($this->puestoEditarId)],
+            'puestoActivo' => ['boolean'],
+        ], [
+            'puestoNombre.required' => 'Ingrese el nombre del puesto.',
+            'puestoCodigo.required' => 'Ingrese el código del puesto.',
+            'puestoCodigo.unique' => 'El código ya está registrado.',
+        ]);
+
+        if (
+            $this->puestoEditarId && !$this->puestoActivo &&
+
+            Puesto::whereKey($this->puestoEditarId)->whereHas('empleados', fn($q) => $q->where('activo', true))->exists()
+        ) {
+
+            throw ValidationException::withMessages(['puestoActivo' => 'No puede desactivar un puesto con empleados activos.']);
+        }
+
+        // Con ID actualiza; sin ID crea un nuevo registro.
+        Puesto::updateOrCreate(['id' => $this->puestoEditarId], [
+
+            'nombre' => trim($datos['puestoNombre']),
+
+            'codigo' => trim($datos['puestoCodigo']),
+
+            'activo' => $datos['puestoActivo'],
+
+        ]);
+
+        $this->limpiarPuesto();
+
+        session()->flash('mensaje', 'Puesto guardado correctamente.');
+    }
+
+
+    /**
+     * Activa o desactiva un puesto.
+     *
+     * No permite desactivar puestos que tengan empleados activos.
+     */
+    public function cambiarEstadoPuesto(int $puestoId): void
+    {
+        DB::transaction(function () use ($puestoId) {
+
+            $puesto = Puesto::findOrFail($puestoId);
+
+            // Impide desactivar un puesto con empleados activos.
+            if (
+                $puesto->activo &&
+                $puesto->empleados()->where('activo', true)->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'estadoPuesto' =>
+                    'No puede desactivar un puesto con empleados activos.',
+                ]);
+            }
+
+            // Invierte el estado.
+            $puesto->activo = !$puesto->activo;
+            $puesto->save();
+        });
+
+        session()->flash(
+            'mensaje',
+            'Estado del puesto actualizado correctamente.'
+        );
+    }
+
+
+    /**
+     * Cierra la gestión de puestos y limpia sus campos.
+     */
+    public function cerrarModalPuestos(): void
+
+    {
+
+        $this->mostrarModalPuestos = false;
+
+        $this->limpiarPuesto();
     }
 
     /**
-     * Limpia los campos y errores del formulario.
+     * Restablece los campos de puesto y los errores de validación.
      */
-    private function limpiarFormulario(): void
-    {
-        $this->reset(
-            'empleadoId',
-            'usuarioId',
-            'nombre',
-            'correo',
-            'password',
-            'password_confirmation',
-            'puestoId',
-            'jefeId',
-            'activo',
-            'esAdmin',
-        );
+    private function limpiarPuesto(): void
 
-        $this->activo = true;
-        $this->esAdmin = false;
+    {
+
+        $this->reset(['puestoEditarId', 'puestoNombre', 'puestoCodigo', 'puestoActivo']);
+
+        $this->puestoActivo = true;
 
         $this->resetValidation();
     }
 
     /**
-     * Carga empleados, puestos y posibles jefes inmediatos.
+     * Cuando cambia la búsqueda, vuelve a la primera página.
      */
+    public function updatedBuscar(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Cuando cambia el filtro de estado, vuelve a la primera página.
+     */
+    public function updatedFiltroEstado(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Cuando cambia el filtro de acceso, vuelve a la primera página.
+     */
+    public function updatedFiltroAcceso(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Cuando cambia la cantidad de registros, vuelve a la primera página.
+     */
+    public function updatedPorPagina(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Quita los filtros de la tabla y regresa a la primera página.
+     */
+    public function limpiarFiltros(): void
+
+    {
+
+        $this->buscar = '';
+
+        $this->filtroEstado = 'todos';
+
+        $this->filtroAcceso = 'todos';
+
+        $this->resetPage();
+    }
+
+
+
+
     public function render()
     {
-        $empleados = Empleado::query()
-            ->with([
-                'usuario',
-                'puesto.plantilla',
-                'jefe.usuario',
-                'jefe.puesto',
-            ])
-            ->when(
-                $this->buscar,
-                function ($consulta) {
-                    $consulta->where(function ($subconsulta) {
-                        $subconsulta
-                            ->whereHas('usuario', function ($usuarios) {
-                                $usuarios
-                                    ->where('name', 'like', '%' . $this->buscar . '%')
-                                    ->orWhere('email', 'like', '%' . $this->buscar . '%');
-                            })
-                            ->orWhereHas('puesto', function ($puestos) {
-                                $puestos
-                                    ->where('nombre', 'like', '%' . $this->buscar . '%')
-                                    ->orWhere('codigo', 'like', '%' . $this->buscar . '%');
-                            });
-                    });
-                }
-            )
-            ->get()
-            ->sortBy(fn (Empleado $empleado) => $empleado->usuario->name)
-            ->values();
-
-        $puestos = Puesto::query()
-            ->where('activo', true)
-            ->with('plantilla')
-            ->orderBy('nombre')
-            ->get();
-
-        /*
-         * Un empleado puede seleccionar como jefe inmediato
-         * a cualquier empleado activo, excepto a sí mismo.
-         */
-        $jefes = Empleado::query()
-            ->with([
-                'usuario',
-                'puesto',
-            ])
-            ->where('activo', true)
-            ->when(
-                $this->empleadoId,
-                fn ($consulta) => $consulta->where('id', '!=', $this->empleadoId)
-            )
-            ->get()
-            ->sortBy(fn (Empleado $empleado) => $empleado->usuario->name)
-            ->values();
+        $consulta = Empleado::query()->with(['usuario', 'puesto']);
+        // buscar en users.name, users.email o puestos.nombre
+        if (trim($this->buscar) !== '') {
+            $buscar = trim($this->buscar);
+            $consulta->where(function ($q) use ($buscar) {
+                $q->whereHas('usuario', fn($u) => $u->where('name', 'like', "%{$buscar}%")->orWhere('email', 'like', "%{$buscar}%"))
+                    ->orWhereHas('puesto', fn($p) => $p->where('nombre', 'like', "%{$buscar}%"));
+            });
+        }
+        if ($this->filtroEstado !== 'todos') {
+            $consulta->where('activo',  $this->filtroEstado === 'activos');
+        }
+        if ($this->filtroAcceso !== 'todos') {
+            $consulta->whereHas('usuario', fn($u) => $u->where('es_admin', $this->filtroAcceso === 'administradores'));
+        }
+        
 
         return view('livewire.administracion.empleados', [
-            'empleados' => $empleados,
-            'puestos' => $puestos,
-            'jefes' => $jefes,
+
+            'empleados' => $consulta->orderByDesc('id')->paginate($this->porPagina),
+
+            'puestos' => Puesto::withCount('empleados')->orderBy('nombre')->get(),
+
+            'totalActivos' => Empleado::where('activo', true)->count(),
+
+            'totalInactivos' => Empleado::where('activo', false)->count(),
+
         ]);
     }
 }

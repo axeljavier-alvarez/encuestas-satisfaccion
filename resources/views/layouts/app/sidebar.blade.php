@@ -109,6 +109,75 @@
         .sidebar-institucional [data-flux-profile] svg {
             color: #ffffff !important;
         }
+
+        .filtros-empleados {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            flex-wrap: nowrap;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .filtro-buscar {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .filtro-estado {
+            flex: 0 0 145px;
+        }
+
+        .filtro-acceso {
+            flex: 0 0 165px;
+        }
+
+        .filtro-limpiar {
+            flex: 0 0 auto;
+        }
+
+        .filtro-paginacion {
+            flex: 0 0 135px;
+            margin-left: auto;
+        }
+
+        @media (max-width: 900px) {
+            .filtros-empleados {
+                flex-wrap: wrap;
+            }
+
+            .filtro-buscar {
+                flex: 1 1 100%;
+            }
+
+            .filtro-estado,
+            .filtro-acceso {
+                flex: 1 1 150px;
+            }
+
+            .filtro-paginacion {
+                margin-left: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .filtros-empleados {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .filtro-buscar,
+            .filtro-estado,
+            .filtro-acceso,
+            .filtro-limpiar,
+            .filtro-paginacion {
+                width: 100%;
+                min-width: 0;
+                flex: 0 0 auto;
+                margin-left: 0;
+            }
+        }
     </style>
 </head>
 
@@ -177,6 +246,11 @@
                             Seguimiento de evaluaciones
                         </flux:sidebar.item>
                         --}}
+
+                    <flux:sidebar.item icon="users" :href="route('administracion.empleados')"
+                        :current="request()->routeIs('administracion.empleados')" wire:navigate>
+                        Empleados
+                    </flux:sidebar.item>
 
                     <flux:sidebar.item icon="document-text" :href="route('administracion.preguntas')"
                         :current="request()->routeIs('administracion.preguntas')" wire:navigate>
