@@ -50,6 +50,11 @@
         {{-- TABLA RESPONSIVA --}}
         <x-data-table :$headers :$rows empty-message="No se encontraron asignadores.">
 
+             {{-- ROL --}}
+            @interact('id', $row)
+                    {{ $row->id }}
+            @endinteract
+
             {{-- ASIGNADOR --}}
             @interact('name', $row)
                 <div class="flex items-center gap-3">

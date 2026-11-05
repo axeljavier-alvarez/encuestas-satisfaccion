@@ -24,6 +24,7 @@ class Asignadores extends Component
     protected function tableSortableColumns(): array
     {
         return [
+            'id',
             'name',
             'rol',
             'activo',
@@ -150,6 +151,10 @@ class Asignadores extends Component
     public function render()
     {
         $headers = [
+            [
+                'index' => 'id',
+                'label' => '#',
+            ],
             [
                 'index' => 'name',
                 'label' => 'Datos asignador',
