@@ -81,6 +81,17 @@
                 </flux:badge>
             @endinteract
 
+             {{-- Estado --}}
+            @interact('activo', $row)
+                <flux:badge
+                    :color="$row->activo == 1 ? 'green' : 'red'"
+                    size="sm"
+                >
+                    {{ $row->activo == 1 ? 'Activo' : 'Inactivo' }}
+                </flux:badge>
+            @endinteract
+
+
             {{-- PLANTILLAS ASIGNADAS --}}
             @interact('plantillas_count', $row)
                 <span

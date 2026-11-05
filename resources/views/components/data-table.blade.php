@@ -307,6 +307,7 @@
                         </flux:table.column>
                     @endif
 
+                    <!-- sort by columnas -->
                     @foreach ($headers as $header)
                         <flux:table.column :sortable="$header['index'] !== 'actions'"
                             :sorted="$this->sortBy === $header['index']" :direction="$this->sortDirection"
@@ -493,4 +494,19 @@
             grid-row: 1;
         }
     }
+
+    .tabla-asignadores [data-flux-pagination] {
+        padding: 16px 24px !important;
+        min-height: 68px;
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+        .tabla-asignadores [data-flux-pagination] {
+            padding: 14px 16px !important;
+            gap: 12px;
+        }
+    }
+
+
 </style>
