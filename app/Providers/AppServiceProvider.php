@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +27,33 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Blade::directive('interact', function (mixed $expression): string {
+            // Parsear la expresión como lo hace TallStackUI
+            $directive = array_map('trim', preg_split('/,(?![^(]*[)])/', $expression));
+            $directive[1] ??= ''; // Prevenir error cuando no hay segundo parámetro
+            
+            [$name, $arguments] = $directive;
+            
+            // Extraer parámetros adicionales
+            $parameters = collect(array_flip($directive))
+                ->except($name, $arguments)
+                ->flip()
+                ->push('$__env')
+                ->implode(',');
+            
+            // Normalizar nombre (reemplazar puntos por guiones bajos)
+            $name = 'column_' . str_replace('.', '_', trim($name, "'\""));
+            
+            // Devolver código PHP para registrar el slot
+            return "<?php \$__env->slot('{$name}', function({$arguments}) use ({$parameters}) { ?>";
+        });
+
+        Blade::directive('endinteract', fn (): string => '<?php }); ?>');
+
+        Gate::before(function ($user, $ability) {
+            return $user->hasRole('Sysadmin') ? true : null;
+        });
     }
 
     /**
@@ -44,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
                 ->numbers()
                 ->symbols()
                 ->uncompromised()
-            : null,
+            : null
         );
     }
 }

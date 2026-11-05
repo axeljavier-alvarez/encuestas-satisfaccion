@@ -15,7 +15,10 @@ return new class extends Migration
             $table->string('rol', 30)
                 ->default('asignador')
                 ->after('password');
+
+             $table->boolean('activo')->default(true);
         });
+        
     }
 
     public function down(): void

@@ -58,38 +58,38 @@
         }
 
         /* MENÚ DESPLEGABLE DEL PERFIL */
-        ui-menu[data-flux-menu] {
+        ui-menu[data-flux-menu].menu-perfil {
             background-color: #273385 !important;
             color: #ffffff !important;
         }
 
         /* TODOS LOS TEXTOS DEL MENÚ */
-        ui-menu[data-flux-menu] [data-flux-heading],
-        ui-menu[data-flux-menu] [data-flux-text],
-        ui-menu[data-flux-menu] [data-flux-menu-item] {
+        ui-menu[data-flux-menu].menu-perfil [data-flux-heading],
+        ui-menu[data-flux-menu].menu-perfil [data-flux-text],
+        ui-menu[data-flux-menu].menu-perfil [data-flux-menu-item] {
             color: #ffffff !important;
         }
 
         /* NOMBRE, CORREO Y ELEMENTOS INTERNOS */
-        ui-menu[data-flux-menu] [data-flux-heading] *,
-        ui-menu[data-flux-menu] [data-flux-text] *,
-        ui-menu[data-flux-menu] [data-flux-menu-item] * {
+        ui-menu[data-flux-menu].menu-perfil [data-flux-heading] *,
+        ui-menu[data-flux-menu].menu-perfil [data-flux-text] *,
+        ui-menu[data-flux-menu].menu-perfil [data-flux-menu-item] * {
             color: #ffffff !important;
         }
 
         /* ICONOS */
-        ui-menu[data-flux-menu] [data-flux-menu-item] svg {
+        ui-menu[data-flux-menu].menu-perfil [data-flux-menu-item] svg {
             color: #ffffff !important;
         }
 
         /* EFECTO AL PASAR EL MOUSE */
-        ui-menu[data-flux-menu] [data-flux-menu-item]:hover {
+        ui-menu[data-flux-menu].menu-perfil [data-flux-menu-item]:hover {
             background-color: rgba(255, 255, 255, 0.15) !important;
             color: #ffffff !important;
         }
 
         /* SEPARADORES */
-        ui-menu[data-flux-menu] [data-flux-menu-separator] {
+        ui-menu[data-flux-menu].menu-perfil [data-flux-menu-separator] {
             border-color: rgba(255, 255, 255, 0.20) !important;
         }
 
@@ -262,7 +262,7 @@
 
             <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
 
-            <flux:menu>
+            <flux:menu class="menu-perfil">
 
                 {{-- Datos del usuario --}}
                 <flux:menu.radio.group>
