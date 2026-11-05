@@ -7,24 +7,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Agrega el permiso administrativo a los usuarios.
+     * Run the migrations.
      */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('es_admin')
-                ->default(false)
+            $table->string('rol', 30)
+                ->default('asignador')
                 ->after('password');
         });
     }
 
-    /**
-     * Elimina el campo si se revierte la migración.
-     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('es_admin');
+            $table->dropColumn('rol');
         });
     }
 };

@@ -23,15 +23,17 @@ class Plantilla extends Model
         ];
     }
 
-    public function empleados()
+
+    public function usuarios()
     {
         return $this->belongsToMany(
-            Empleado::class,
-            'plantilla_empleado',
+            User::class,
+            'plantilla_usuario',
             'plantilla_id',
-            'empleado_id'
+            'user_id'
         )->withTimestamps();
     }
+
 
     public function preguntas()
     {
@@ -41,8 +43,8 @@ class Plantilla extends Model
             'plantilla_id',
             'pregunta_id'
         )
-        ->withPivot('orden', 'tipo_respuesta_id')
-        ->withTimestamps()
-        ->orderByPivot('orden');
+            ->withPivot('orden', 'tipo_respuesta_id')
+            ->withTimestamps()
+            ->orderByPivot('orden');
     }
 }

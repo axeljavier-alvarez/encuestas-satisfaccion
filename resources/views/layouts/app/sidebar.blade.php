@@ -185,8 +185,9 @@
 
     {{-- Menú lateral para computadora --}}
     <flux:sidebar sticky collapsible="mobile" class="sidebar-institucional border-e">
+
         <flux:sidebar.header>
-            <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
+            <x-app-logo :sidebar="true" href="{{ route('home') }}" wire:navigate />
 
             <flux:sidebar.collapse class="lg:hidden" />
         </flux:sidebar.header>
@@ -194,62 +195,25 @@
         {{-- Navegación principal --}}
         <flux:sidebar.nav>
 
-            {{-- Portal de evaluaciones --}}
-            <flux:sidebar.group heading="Portal de encuestas" class="grid">
-                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                    wire:navigate>
-                    Resumen
-                </flux:sidebar.item>
-            </flux:sidebar.group>
+            {{-- Portal de encuestas: solo administradores --}}
+            @if (auth()->user()?->esAdministrador())
+                <flux:sidebar.group heading="Portal de encuestas" class="grid">
 
+                    <flux:sidebar.item icon="home" :href="route('dashboard')"
+                        :current="request()->routeIs('dashboard')" wire:navigate>
+                        Resumen
+                    </flux:sidebar.item>
 
-
+                </flux:sidebar.group>
+            @endif
 
             {{-- Administración --}}
-            @if (auth()->user()->es_admin)
+            @if (auth()->user()?->esAdministrador())
                 <flux:sidebar.group heading="Administración" class="grid">
 
-                    {{--
-                        <flux:sidebar.item
-                            icon="briefcase"
-                            :href="route('administracion.puestos')"
-                            :current="request()->routeIs('administracion.puestos')"
-                            wire:navigate
-                        >
-                            Puestos
-                        </flux:sidebar.item>
-
-                        <flux:sidebar.item
-                            icon="users"
-                            :href="route('administracion.empleados')"
-                            :current="request()->routeIs('administracion.empleados')"
-                            wire:navigate
-                        >
-                            Empleados
-                        </flux:sidebar.item>
-
-                        <flux:sidebar.item
-                            icon="arrows-right-left"
-                            :href="route('administracion.relaciones-puestos')"
-                            :current="request()->routeIs('administracion.relaciones-puestos')"
-                            wire:navigate
-                        >
-                            Relaciones entre puestos
-                        </flux:sidebar.item>
-
-                        <flux:sidebar.item
-                            icon="clipboard-document-check"
-                            :href="route('administracion.seguimiento-evaluaciones')"
-                            :current="request()->routeIs('administracion.seguimiento-evaluaciones')"
-                            wire:navigate
-                        >
-                            Seguimiento de evaluaciones
-                        </flux:sidebar.item>
-                        --}}
-
-                    <flux:sidebar.item icon="users" :href="route('administracion.empleados')"
-                        :current="request()->routeIs('administracion.empleados')" wire:navigate>
-                        Empleados
+                    <flux:sidebar.item icon="users" :href="route('administracion.asignadores')"
+                        :current="request()->routeIs('administracion.asignadores')" wire:navigate>
+                        Asignadores
                     </flux:sidebar.item>
 
                     <flux:sidebar.item icon="document-text" :href="route('administracion.preguntas')"
@@ -261,7 +225,19 @@
                         :current="request()->routeIs('administracion.plantillas')" wire:navigate>
                         Plantillas de evaluación
                     </flux:sidebar.item>
+
                     {{-- TIPOS DE RESPUESTA --}}
+
+                </flux:sidebar.group>
+            @endif
+
+            @if (auth()->user()?->esAsignador())
+                <flux:sidebar.group heading="Gestión de encuestas" class="grid">
+
+                    <flux:sidebar.item icon="clipboard-document-list" :href="route('asignador.plantillas')"
+                        :current="request()->routeIs('asignador.plantillas')" wire:navigate>
+                        Mis plantillas
+                    </flux:sidebar.item>
 
                 </flux:sidebar.group>
             @endif
@@ -290,7 +266,9 @@
 
                 {{-- Datos del usuario --}}
                 <flux:menu.radio.group>
+
                     <div class="p-0 text-sm font-normal">
+
                         <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
 
                             <flux:avatar :name="auth()->user()->name" :initials="auth()->user()->initials()" />
@@ -306,17 +284,22 @@
                                 </flux:text>
 
                             </div>
+
                         </div>
+
                     </div>
+
                 </flux:menu.radio.group>
 
                 <flux:menu.separator />
 
                 {{-- Configuración --}}
                 <flux:menu.radio.group>
+
                     <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                         Configuración
                     </flux:menu.item>
+
                 </flux:menu.radio.group>
 
                 <flux:menu.separator />
@@ -329,6 +312,7 @@
                         class="w-full cursor-pointer" data-test="logout-button">
                         Cerrar sesión
                     </flux:menu.item>
+
                 </form>
 
             </flux:menu>

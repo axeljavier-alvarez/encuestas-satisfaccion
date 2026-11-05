@@ -11,20 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('plantilla_empleado', function (Blueprint $table) {
+        Schema::create('plantilla_usuario', function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('plantilla_id')
                 ->constrained('plantillas')
                 ->cascadeOnDelete();
 
-            $table->foreignId('empleado_id')
-                ->constrained('empleados')
+            $table->foreignId('user_id')
+                ->constrained('users')
                 ->restrictOnDelete();
 
             $table->timestamps();
 
-            $table->unique(['plantilla_id', 'empleado_id']);
+            $table->unique(['plantilla_id', 'user_id']);
         });
     }
 
@@ -33,6 +33,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('plantilla_empleado');
+        Schema::dropIfExists('plantilla_usuario');
     }
 };
+

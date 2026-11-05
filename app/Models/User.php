@@ -14,7 +14,7 @@ use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'email', 'password', 'es_admin'])]
+#[Fillable(['name', 'email', 'password', 'rol'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -31,24 +31,46 @@ class User extends Authenticatable implements PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'es_admin' => 'boolean',
         ];
     }
 
     /**
-     * Get the user's initials
+     * Get the user's initials.
      */
     public function initials(): string
     {
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn ($word) => Str::substr($word, 0, 1))
+            ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
 
-    public function empleado()
+    /**
+     * Verificar si el usuario es administrador.
+     */
+    public function esAdministrador(): bool
     {
-        return $this->hasOne(Empleado::class);
+        return $this->rol === 'admin';
+    }
+
+    /**
+     * Verificar si el usuario es asignador.
+     */
+    public function esAsignador(): bool
+    {
+        return $this->rol === 'asignador';
+    }
+
+
+
+    public function plantillas()
+    {
+        return $this->belongsToMany(
+            Plantilla::class,
+            'plantilla_usuario',
+            'user_id',
+            'plantilla_id'
+        )->withTimestamps();
     }
 }

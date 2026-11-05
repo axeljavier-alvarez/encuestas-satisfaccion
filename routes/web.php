@@ -1,51 +1,72 @@
 <?php
 
-use App\Livewire\Administracion\Empleados;
-use App\Livewire\Administracion\Puestos;
+use App\Livewire\Administracion\Asignadores;
 use App\Livewire\Administracion\Plantillas;
-use Illuminate\Support\Facades\Route;
-// preguntas
 use App\Livewire\Administracion\Preguntas;
-use App\Livewire\Administracion\TiposRespuesta;
+use App\Livewire\Asignador\PlantillasAsignadas;
+use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Ruta inicial según el rol
+|--------------------------------------------------------------------------
+*/
 Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect()->route('login');
+
+    if (!auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    return match (auth()->user()->rol) {
+        'admin' => redirect()->route('dashboard'),
+        'asignador' => redirect()->route('asignador.plantillas'),
+        default => abort(403, 'Rol no autorizado.'),
+    };
+
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
     /*
-     * Pantallas disponibles para cualquier empleado autenticado.
-     */
+    |--------------------------------------------------------------------------
+    | Administrador
+    |--------------------------------------------------------------------------
+    */
     Route::view('dashboard', 'dashboard')
+        ->middleware('admin')
         ->name('dashboard');
-    /*
-     * Pantallas exclusivas para usuarios administradores.
-     */
-   
+
     Route::middleware('admin')
         ->prefix('administracion')
         ->name('administracion.')
         ->group(function () {
-            Route::get(
-                'puestos',
-                Puestos::class
-            )->name('puestos');
-            Route::get(
-                'empleados',
-                Empleados::class
-            )->name('empleados');
+
+            Route::get('asignadores', Asignadores::class)
+                ->name('asignadores');
+
+            Route::get('plantillas', Plantillas::class)
+                ->name('plantillas');
+
+            Route::get('preguntas', Preguntas::class)
+                ->name('preguntas');
             
-            Route::get(
-                'plantillas',
-                Plantillas::class
-            )->name('plantillas');
-            Route::get(
-                'preguntas',
-                Preguntas::class
-            )->name('preguntas');
-       });
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asignador
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('asignador')
+        ->prefix('asignador')
+        ->name('asignador.')
+        ->group(function () {
+
+            Route::get('plantillas', PlantillasAsignadas::class)
+                ->name('plantillas');
+
+        });
+
 });
 
 require __DIR__.'/settings.php';

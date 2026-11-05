@@ -14,7 +14,7 @@ class EsAdministrador
     public function handle(Request $request, Closure $next): Response
     {
         abort_unless(
-            $request->user()?->es_admin,
+            $request->user()?->rol === 'admin',
             403,
             'No tiene permiso para acceder a esta sección.'
         );
