@@ -41,7 +41,7 @@ trait DataTable
     {
         if (empty($this->filters)) {
             $this->filters = [
-                ['field' => '', 'operator' => '', 'value' => '']
+                ['field' => '', 'operator' => '=', 'value' => ''],
             ];
         }
     }
@@ -112,12 +112,12 @@ trait DataTable
     }
 
     // Agregar filtro
-    public function addFilter(): void
+   public function addFilter(): void
     {
         $this->filters[] = [
             'field' => '',
-            'operator' => '',
-            'value' => ''
+            'operator' => '=',
+            'value' => '',
         ];
     }
 
@@ -143,7 +143,7 @@ trait DataTable
     public function clearFilters(): void
     {
         $this->filters = [
-            ['field' => '', 'operator' => '', 'value' => '']
+            ['field' => '', 'operator' => '=', 'value' => ''],
         ];
 
         $this->resetPage();
@@ -254,66 +254,63 @@ trait DataTable
     {
         $columns = $this->tableFilterableColumns();
 
-        foreach ($this->processFilters() as $filter) {
-            $field = $filter['field'];
-            $operator = strtolower($filter['operator']);
-            $value = $filter['value'];
+        foreach ($this->filters as $filter) {
 
-            if (!in_array($field, $columns, true)) {
+            $field = $filter['field'] ?? '';
+            $value = trim((string) ($filter['value'] ?? ''));
+
+            // Validar campo y valor
+            if (
+                !in_array($field, $columns, true) ||
+                $value === ''
+            ) {
                 continue;
             }
 
-            if (!in_array(
-                $operator,
-                $this->getAvailableOperators(),
-                true
-            )) {
-                continue;
-            }
-
-            if ($operator === 'null') {
-                $query->whereNull($field);
-                continue;
-            }
-
-            if ($operator === 'not null') {
-                $query->whereNotNull($field);
-                continue;
-            }
-
-            if (in_array($operator, ['between', 'not between'], true)) {
-                if (!is_array($value) || count($value) !== 2) {
-                    continue;
-                }
-
-                if ($operator === 'between') {
-                    $query->whereBetween($field, $value);
+            // ID: búsqueda exacta
+            if ($field === 'id') {
+                if (ctype_digit($value)) {
+                    $query->where('id', (int) $value);
                 } else {
-                    $query->whereNotBetween($field, $value);
+                    $query->whereRaw('1 = 0');
                 }
 
                 continue;
             }
 
-            if (in_array($operator, ['in', 'not in'], true)) {
-                if (!is_array($value) || empty($value)) {
-                    continue;
-                }
+            // Nombre, correo y rol: coincidencia parcial
+            if (in_array($field, ['name', 'email', 'rol'], true)) {
+                $query->where($field, 'like', "%{$value}%");
+                continue;
+            }
 
-                if ($operator === 'in') {
-                    $query->whereIn($field, $value);
+            // Estado: Activo / Inactivo
+            if ($field === 'activo') {
+                $estado = mb_strtolower($value);
+
+                if (in_array($estado, ['activo', '1'], true)) {
+                    $query->where('activo', 1);
+                } elseif (in_array($estado, ['inactivo', '0'], true)) {
+                    $query->where('activo', 0);
                 } else {
-                    $query->whereNotIn($field, $value);
+                    $query->whereRaw('1 = 0');
                 }
 
                 continue;
             }
 
-            if ($value === '' || $value === null) {
+            // Plantillas asignadas: cantidad exacta
+            if ($field === 'plantillas_count') {
+                if (ctype_digit($value)) {
+                    $cantidad = (int) $value;
+
+                    $query->has('plantillas', '=', $cantidad);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+
                 continue;
             }
-
-            $query->where($field, $operator, $value);
         }
 
         return $query;

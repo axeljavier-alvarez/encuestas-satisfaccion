@@ -35,10 +35,12 @@ class Asignadores extends Component
     protected function tableFilterableColumns(): array
     {
         return [
+            'id',
             'name',
             'email',
             'rol',
             'activo',
+            'plantillas_count'
         ];
     }
 
