@@ -38,11 +38,7 @@
     </div>
 
     {{-- MENSAJE DE CONFIRMACIÓN --}}
-    @if (session()->has('mensaje'))
-        <div class="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-            {{ session('mensaje') }}
-        </div>
-    @endif
+    <x-alerta />
 
     {{-- PANEL PRINCIPAL --}}
     <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -114,9 +110,16 @@
                     <flux:menu>
 
                         <flux:menu.item disabled>
-                            Próximamente
+                            Acciones del asignador
                         </flux:menu.item>
 
+                        <flux:menu.separator />
+
+                        <flux:menu.item
+                        icon="pencil-square"
+                        wire:click="editar({{ $row->id }})">
+                        Editar usuario
+                        </flux:menu.item>
                     </flux:menu>
 
                 </flux:dropdown>
@@ -156,11 +159,11 @@
 
                 {{-- CONTRASEÑA --}}
                 <flux:input wire:model="password" label="Contraseña" type="password" placeholder="Mínimo 8 caracteres"
-                    viewable required />
+                    viewable  />
 
                 {{-- CONFIRMAR CONTRASEÑA --}}
                 <flux:input wire:model="password_confirmation" label="Confirmar contraseña" type="password"
-                    placeholder="Repita la contraseña" viewable required />
+                    placeholder="Repita la contraseña" viewable  />
 
                 {{-- BOTONES --}}
                 <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">

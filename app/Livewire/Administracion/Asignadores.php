@@ -19,7 +19,12 @@ class Asignadores extends Component
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
-
+    public ?string $mensaje = null;
+    public ?int $asignadorId = null;
+    public ?int $asignadorEstadoId = null;
+    public string $nombreAsignadorEstado = '';
+    public bool $nuevoEstadoAsignador = false;
+    
     // Configuración de columnas
     protected function tableSortableColumns(): array
     {
@@ -57,10 +62,11 @@ class Asignadores extends Component
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email'),
+                Rule::unique('users', 'email')
+                ->ignore($this->asignadorId),
             ],
             'password' => [
-                'required',
+                'nullable',
                 'string',
                 'min:8',
                 'confirmed',
@@ -102,36 +108,75 @@ class Asignadores extends Component
         Flux::modal('nuevo-asignador')->show();
     }
 
+    public function editar(int $id): void
+    {
+        $this->resetData();
+        $asignador = User::query()
+        ->where('rol', 'asignador')
+        ->findOrFail($id);
+        $this->asignadorId = $asignador->id;
+        $this->nombre = $asignador->name;
+        $this->email = $asignador->email;
+        // no cargar la password almacenada
+        $this->password = '';
+        $this->password_confirmation = '';
+        Flux::modal('nuevo-asignador')->show();
+    }
+
     // Guardar asignador
     public function guardar(): void
     {
         $this->validate();
 
-        User::create([
-            'name' => trim($this->nombre),
-            'email' => trim($this->email),
-            'password' => Hash::make($this->password),
-            'rol' => 'asignador',
-        ]);
+        if($this->asignadorId){
+            $asignador = User::query()
+            ->where('rol', 'asignador')
+            ->findOrFail($this->asignadorId);
 
+            $datos = [
+                'name' => trim($this->nombre),
+                'email' => trim($this->email)
+            ];
+
+            // Actualizar contraseña únicamente si ingresó una nueva
+            if (filled($this->password)) {
+                $datos['password'] = Hash::make($this->password);
+            }
+            $asignador->update($datos);
+            $mensaje = 'Asignador actualizado correctamente.';
+        } else {
+            $password = filled($this->password)
+            ? $this->password
+            : 'ClaveDemo2026*';
+
+
+            User::create([
+                'name' => trim($this->nombre),
+                'email' => trim($this->email),
+                'password' => Hash::make($password),
+                'rol' => 'asignador',
+            ]);
+
+            $mensaje = 'Asignador registrado correctamente.';
+        }
+
+        
         $this->resetData();
-        $this->resetPage();
 
         Flux::modal('nuevo-asignador')->close();
-
-        session()->flash(
-            'mensaje',
-            'Asignador registrado correctamente.'
+           
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: $mensaje,
+            tipo: 'success'
         );
-
-        // Cuando tengas el listener de Toast:
-        // $this->toastSuccess('Asignador registrado correctamente.');
     }
 
     // Limpiar formulario
     public function resetData(): void
     {
         $this->reset([
+            'asignadorId',
             'nombre',
             'email',
             'password',

@@ -183,6 +183,7 @@
 
 <body class="min-h-screen bg-slate-100">
 
+       
     {{-- Menú lateral para computadora --}}
     <flux:sidebar sticky collapsible="mobile" class="sidebar-institucional border-e">
 

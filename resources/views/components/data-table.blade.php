@@ -145,7 +145,11 @@
 
     </div>
 
-    <div wire:loading.delay class="w-full">
+    <div
+        wire:loading.delay
+        wire:target="search,per_page,sort,filters,addFilter,clearFilters,deleteFilter"
+        class="w-full"
+    >
 
         <flux:skeleton.group animate="shimmer">
 
@@ -201,7 +205,10 @@
 
     </div>
 
-    <div wire:loading.remove.delay>
+    <div
+        wire:loading.remove.delay
+        wire:target="search,per_page,sort,filters,addFilter,clearFilters,deleteFilter"
+    >
 
         <div class="lg:hidden">
 
