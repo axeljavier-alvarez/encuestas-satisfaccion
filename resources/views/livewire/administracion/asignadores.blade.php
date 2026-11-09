@@ -116,9 +116,17 @@
                         <flux:menu.separator />
 
                         <flux:menu.item
-                        icon="pencil-square"
-                        wire:click="editar({{ $row->id }})">
-                        Editar usuario
+                            icon="pencil-square"
+                            wire:click="editar({{ $row->id }})">
+                            Editar usuario
+                        </flux:menu.item>
+                        <flux:menu.separator />
+                         <flux:menu.item
+                            :icon="$row->activo ? 'no-symbol' : 'check-circle'"
+                            :variant="$row->activo ? 'danger' : 'default'"
+                            wire:click="confirmarCambioEstado({{ $row->id }})"
+                        >
+                            {{ $row->activo ? 'Desactivar usuario' : 'Activar usuario' }}
                         </flux:menu.item>
                     </flux:menu>
 
@@ -130,19 +138,25 @@
     </div>
 
     {{-- MODAL NUEVO ASIGNADOR --}}
-    <flux:modal name="nuevo-asignador" class="w-full max-w-lg" @close="resetData">
-
+    
+{{-- MODAL CREAR / EDITAR ASIGNADOR --}}
+    <flux:modal
+        name="nuevo-asignador"
+        class="w-full max-w-lg"
+        @close="resetData"
+    >
         <div class="space-y-6">
 
-            {{-- ENCABEZADO DEL MODAL --}}
+            {{-- ENCABEZADO --}}
             <div>
                 <flux:heading size="xl">
-                    Nuevo asignador
+                    {{ $asignadorId ? 'Editar asignador' : 'Nuevo asignador' }}
                 </flux:heading>
 
                 <flux:text class="mt-2">
-                    Complete la información para registrar
-                    un nuevo usuario asignador.
+                    {{ $asignadorId
+                        ? 'Actualice la información del usuario asignador.'
+                        : 'Complete la información para registrar un nuevo usuario asignador.' }}
                 </flux:text>
             </div>
 
@@ -150,31 +164,87 @@
             <form wire:submit="guardar" class="space-y-5">
 
                 {{-- NOMBRE --}}
-                <flux:input wire:model="nombre" label="Nombre completo" placeholder="Ingrese el nombre completo"
-                    icon="user" required />
+                <flux:input
+                    wire:model="nombre"
+                    label="Nombre completo"
+                    placeholder="Ingrese el nombre completo"
+                    icon="user"
+                    required
+                />
+
+                @error('nombre')
+                    <p class="text-xs font-semibold text-red-600">
+                        {{ $message }}
+                    </p>
+                @enderror
 
                 {{-- CORREO --}}
-                <flux:input wire:model="email" label="Correo electrónico" type="email"
-                    placeholder="correo@ejemplo.com" icon="envelope" required />
+                <flux:input
+                    wire:model="email"
+                    label="Correo electrónico"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    icon="envelope"
+                    required
+                />
+
+                @error('email')
+                    <p class="text-xs font-semibold text-red-600">
+                        {{ $message }}
+                    </p>
+                @enderror
 
                 {{-- CONTRASEÑA --}}
-                <flux:input wire:model="password" label="Contraseña" type="password" placeholder="Mínimo 8 caracteres"
-                    viewable  />
+                <flux:input
+                    wire:model="password"
+                    type="password"
+                    :label="$asignadorId ? 'Nueva contraseña' : 'Contraseña'"
+                    placeholder="Mínimo 8 caracteres"
+                    viewable
+                />
+
+                @error('password')
+                    <p class="text-xs font-semibold text-red-600">
+                        {{ $message }}
+                    </p>
+                @enderror
 
                 {{-- CONFIRMAR CONTRASEÑA --}}
-                <flux:input wire:model="password_confirmation" label="Confirmar contraseña" type="password"
-                    placeholder="Repita la contraseña" viewable  />
+                <flux:input
+                    wire:model="password_confirmation"
+                    type="password"
+                    label="Confirmar contraseña"
+                    placeholder="Repita la contraseña"
+                    viewable
+                />
+
+                {{-- MENSAJE AL EDITAR --}}
+                @if ($asignadorId)
+                    <p class="text-xs text-zinc-500">
+                        Deje los campos de contraseña vacíos
+                        si no desea modificarla.
+                    </p>
+                @endif
 
                 {{-- BOTONES --}}
                 <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">
 
-                    <flux:button type="button" variant="ghost" wire:click="cerrarModal">
+                    <flux:button
+                        type="button"
+                        variant="ghost"
+                        wire:click="cerrarModal"
+                    >
                         Cancelar
                     </flux:button>
 
-                    <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
-                        wire:target="guardar">
-                        Guardar asignador
+                    <flux:button
+                        type="submit"
+                        variant="primary"
+                        icon="check"
+                        wire:loading.attr="disabled"
+                        wire:target="guardar"
+                    >
+                        {{ $asignadorId ? 'Guardar cambios' : 'Guardar asignador' }}
                     </flux:button>
 
                 </div>
@@ -182,7 +252,22 @@
             </form>
 
         </div>
-
     </flux:modal>
+
+    <x-confirmacion
+    nombre="confirmar-estado-asignador"
+    :titulo="$nuevoEstadoAsignador
+    ? 'Activar asignador'
+    : 'Desactivar asignador'"
+    :mensaje="$nuevoEstadoAsignador
+    ? '¿Está seguro de que desea activar al asignador ' . $nombreAsignadorEstado . '?'
+    : '¿Está seguro de que desea desactivar al asignador ' . $nombreAsignadorEstado . '?'
+    "
+    :texto-confirmar="$nuevoEstadoAsignador
+    ? 'Sí, activar'
+    : 'Sí, desactivar'"
+    :color="$nuevoEstadoAsignador ? 'primary' : 'danger'"
+    accion="cambiarEstadoAsignador"
+    />
 
 </div>

@@ -172,6 +172,56 @@ class Asignadores extends Component
         );
     }
 
+    
+
+    // confirmar cambio estado
+    public function confirmarCambioEstado(int $id): void
+    {
+        $asignador = User::query()
+        ->where('rol', 'asignador')
+        ->findOrFail($id);
+
+        $this->asignadorEstadoId = $asignador->id;
+        $this->nombreAsignadorEstado = $asignador->name;
+        $this->nuevoEstadoAsignador = !(bool) $asignador->activo;
+
+         Flux::modal('confirmar-estado-asignador')->show();
+    }
+
+    // cambiar estado
+    public function cambiarEstadoAsignador(): void
+    {
+        if($this->asignadorEstadoId === null){
+            return;
+        }
+
+        $asignador = User::query()
+        ->where('rol', 'asignador')
+        ->findOrFail($this->asignadorEstadoId);
+
+        $nuevoEstado = ! (bool) $asignador->activo;
+        $asignador->activo = $nuevoEstado;
+        $asignador->save();
+        $mensaje = $nuevoEstado
+        ? 'Asignador activado correctamente'
+        : 'Asignador desactivado correctamente.';
+
+        $this->reset([
+           'asignadorEstadoId',
+           'nombreAsignadorEstado',
+           'nuevoEstadoAsignador' 
+        ]);
+
+        Flux::modal('confirmar-estado-asignador')->close();
+
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: $mensaje,
+            tipo: 'success'
+        );
+    }
+
+
     // Limpiar formulario
     public function resetData(): void
     {
