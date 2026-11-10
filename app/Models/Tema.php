@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Pregunta;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\Searchable;
 
 class Tema extends Model
 {
+    use Searchable;
     protected $table = 'temas';
 
     protected $fillable = [
+        'factor_id',
         'nombre',
         'activo',
     ];
@@ -18,8 +20,9 @@ class Tema extends Model
         'activo' => 'boolean',
     ];
 
-    public function preguntas()
+    public function factor()
     {
-        return $this->hasMany(Pregunta::class);
+        return $this->belongsTo(Factor::class, 'factor_id');
     }
+
 }

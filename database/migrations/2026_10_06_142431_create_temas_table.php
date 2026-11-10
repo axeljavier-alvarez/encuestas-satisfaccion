@@ -10,6 +10,9 @@ return new class extends Migration
     {
         Schema::create('temas', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('factor_id')
+            ->constrained('factores')
+            ->restrictOnDelete();
             $table->string('nombre', 200)->unique();
             $table->boolean('activo')->default(true);
             $table->timestamps();

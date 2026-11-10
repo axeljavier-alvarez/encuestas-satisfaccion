@@ -19,11 +19,6 @@ return new class extends Migration
             $table->foreignId('factor_id')
                 ->constrained('factores')
                 ->restrictOnDelete();
-
-            $table->foreignId('tema_id')
-                ->nullable()
-                ->constrained('temas')
-                ->nullOnDelete();
             // Indica si la pregunta calcula NPS
             $table->boolean('es_nps')->default(false);
 

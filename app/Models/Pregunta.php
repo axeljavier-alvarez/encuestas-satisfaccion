@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\Searchable;
 
 class Pregunta extends Model
 {
+    use Searchable;
     protected $table = 'preguntas';
 
     protected $fillable = [
         'codigo',
         'factor_id',
-        'tema_id',
         'texto',
         'es_nps',
         'activo',
@@ -41,10 +42,6 @@ class Pregunta extends Model
         return $this->belongsTo(Factor::class);
     }
 
-    public function tema()
-    {
-        return $this->belongsTo(Tema::class);
-    }
 
     public function plantillas()
     {
