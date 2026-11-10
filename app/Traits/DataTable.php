@@ -3,7 +3,6 @@
 namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 use Livewire\WithPagination;
 
 trait DataTable
@@ -190,39 +189,104 @@ trait DataTable
     {
         return collect($this->filters)
             ->filter(function ($filter) {
-                return !empty($filter['field'])
-                    && !empty($filter['operator']);
-            })
-            ->map(function ($filter) {
-                $operator = strtolower($filter['operator']);
+                $field = $filter['field'] ?? '';
                 $value = $filter['value'] ?? '';
 
-                if (
-                    in_array($operator, $this->arrayOperators, true)
-                    && is_string($value)
-                    && $value !== ''
-                ) {
-                    $filter['value'] = $this->convertToArray($value);
-                }
-
-                if (in_array($operator, $this->nullOperators, true)) {
-                    $filter['value'] = null;
-                }
-
-                if (
-                    in_array($operator, $this->stringOperators, true)
-                    && is_string($value)
-                    && $value !== ''
-                    && !Str::contains($value, '%')
-                ) {
-                    $filter['value'] = "%{$value}%";
-                }
-
-                return $filter;
+                return $field !== ''
+                    && trim((string) $value) !== '';
+            })
+            ->map(function ($filter) {
+                return [
+                    'field' => $filter['field'],
+                    'operator' => '=',
+                    'value' => trim((string) $filter['value']),
+                ];
             })
             ->values()
             ->toArray();
     }
+
+    // protected function processFilters(): array
+    // {
+    //     return collect($this->filters)
+    //         ->filter(function ($filter) {
+    //             $field = $filter['field'] ?? '';
+    //             $operator = strtolower($filter['operator'] ?? '');
+    //             $value = $filter['value'] ?? '';
+
+    //             // Debe existir campo y operador
+    //             if ($field === '' || $operator === '') {
+    //                 return false;
+    //             }
+
+    //             // Estos operadores no necesitan valor
+    //             if (in_array($operator, $this->nullOperators, true)) {
+    //                 return true;
+    //             }
+
+    //             // Los demás operadores requieren un valor
+    //             if (is_array($value)) {
+    //                 return !empty($value);
+    //             }
+
+    //             return trim((string) $value) !== '';
+    //         })
+    //         ->map(function ($filter) {
+    //             $operator = strtolower($filter['operator']);
+    //             $value = $filter['value'] ?? '';
+
+    //             // Operadores de arrays
+    //             if (
+    //                 in_array($operator, $this->arrayOperators, true)
+    //                 && is_string($value)
+    //             ) {
+    //                 $filter['value'] = $this->convertToArray($value);
+    //             }
+
+    //             // Operadores de nulos
+    //             if (in_array($operator, $this->nullOperators, true)) {
+    //                 $filter['value'] = null;
+    //             }
+
+    //             // Operadores de texto
+    //             if (
+    //                 in_array($operator, $this->stringOperators, true)
+    //                 && is_string($value)
+    //                 && !Str::contains($value, '%')
+    //             ) {
+    //                 $filter['value'] = '%' . trim($value) . '%';
+    //             }
+
+    //             return $filter;
+    //         })
+    //         ->filter(function ($filter) {
+    //             // BETWEEN requiere exactamente dos valores
+    //             if (in_array(
+    //                 $filter['operator'],
+    //                 ['between', 'not between'],
+    //                 true
+    //             )) {
+    //                 return is_array($filter['value'])
+    //                     && count($filter['value']) === 2;
+    //             }
+
+    //             // IN requiere al menos un valor
+    //             if (in_array(
+    //                 $filter['operator'],
+    //                 ['in', 'not in'],
+    //                 true
+    //             )) {
+    //                 return is_array($filter['value'])
+    //                     && count($filter['value']) > 0;
+    //             }
+
+    //             return true;
+    //         })
+    //         ->values()
+    //         ->toArray();
+    // }
+
+
 
     protected function convertToArray(string $value): array
     {

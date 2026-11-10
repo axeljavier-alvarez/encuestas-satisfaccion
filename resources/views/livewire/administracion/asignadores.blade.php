@@ -44,7 +44,12 @@
     <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div class="border-t border-zinc-200"></div>
         {{-- TABLA RESPONSIVA --}}
-        <x-data-table :$headers :$rows  empty-message="No se encontraron asignadores.">
+        <x-data-table
+            :headers="$headers"
+            :rows="$this->rows"
+            :advance-filter="true"
+            empty-message="No se encontraron asignadores."
+        >
 
              {{-- ROL --}}
             @interact('id', $row)
@@ -139,7 +144,6 @@
 
     {{-- MODAL NUEVO ASIGNADOR --}}
     
-{{-- MODAL CREAR / EDITAR ASIGNADOR --}}
     <flux:modal
         name="nuevo-asignador"
         class="w-full max-w-lg"

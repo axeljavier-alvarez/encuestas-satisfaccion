@@ -51,14 +51,14 @@ class FortifyServiceProvider extends ServiceProvider
             // Correo electrónico no registrado
             if (! $user) {
                 throw ValidationException::withMessages([
-                    'email' => 'El correo electrónico no se encuentra registrado.',
+                    'email' => 'Las credenciales no coinciden con nuestros registros.',
                 ]);
             }
 
             // Contraseña incorrecta
             if (! Hash::check($request->input('password'), $user->password)) {
                 throw ValidationException::withMessages([
-                    'password' => 'La contraseña proporcionada es incorrecta.',
+                    'password' => 'Las credenciales no coinciden con nuestros registros',
                 ]);
             }
 

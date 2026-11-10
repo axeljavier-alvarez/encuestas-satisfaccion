@@ -9,10 +9,20 @@ use Flux\Flux;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
+use Livewire\Attributes\Computed;
 
 class Asignadores extends Component
 {
     use DataTable, Interact;
+
+    public array $headers = [
+        ['index' => 'id', 'label' => '#'],
+        ['index' => 'name', 'label' => 'Datos asignador'],
+        ['index' => 'rol', 'label' => 'Rol'],
+        ['index' => 'activo', 'label' => 'Estado'],
+        ['index' => 'plantillas_count', 'label' => 'Plantillas asignadas'],
+        ['index' => 'actions', 'label' => 'Acciones'],
+    ];
 
     // Formulario
     public string $nombre = '';
@@ -21,11 +31,12 @@ class Asignadores extends Component
     public string $password_confirmation = '';
     public ?string $mensaje = null;
     public ?int $asignadorId = null;
+    // cambio de estado
     public ?int $asignadorEstadoId = null;
     public string $nombreAsignadorEstado = '';
     public bool $nuevoEstadoAsignador = false;
     
-    // Configuración de columnas
+    // Configuración de columnas permitidas para ordenar
     protected function tableSortableColumns(): array
     {
         return [
@@ -37,6 +48,7 @@ class Asignadores extends Component
         ];
     }
 
+    // Columnas permitidas para filtrar
     protected function tableFilterableColumns(): array
     {
         return [
@@ -49,7 +61,29 @@ class Asignadores extends Component
         ];
     }
 
-    // Validaciones
+    #[Computed]
+    public function rows()
+    {
+        $query = User::query()
+        ->where('rol', 'asignador')
+        ->withCount('plantillas');
+        // busqueda por nombre o correo
+        if (trim($this->search) !== ''){
+            $buscar = trim($this->search);
+            $query->where(function ($q) use ($buscar){
+                $q->where('name', 'like', "%{$buscar}%")
+                  ->orWhere('email', 'like', "%{$buscar}%");
+            });
+        }
+        // filtros avanzados
+        $this->applyTableFilters($query);
+        // ordenamiento
+        $this->applyTableSorting($query);
+
+        return $query->paginate($this->getPerPage());
+    }
+
+     // Validaciones
     protected function rules(): array
     {
         return [
@@ -162,6 +196,7 @@ class Asignadores extends Component
 
         
         $this->resetData();
+        $this->resetPage();
 
         Flux::modal('nuevo-asignador')->close();
            
@@ -247,64 +282,9 @@ class Asignadores extends Component
     // Consulta principal
     public function render()
     {
-        $headers = [
-            [
-                'index' => 'id',
-                'label' => '#',
-            ],
-            [
-                'index' => 'name',
-                'label' => 'Datos asignador',
-            ],
-            [
-                'index' => 'rol',
-                'label' => 'Rol',
-            ],
-            [
-                'index' => 'activo',
-                'label' => 'Estado',
-            ],
-            [
-                'index' => 'plantillas_count',
-                'label' => 'Plantillas asignadas',
-            ],
-            [
-                'index' => 'actions',
-                'label' => 'Acciones',
-            ],
-        ];
-
-        $consulta = User::query()
-            ->where('rol', 'asignador')
-            ->withCount('plantillas');
-
-        // Buscar por nombre o correo
-        if (trim($this->search) !== '') {
-            $buscar = trim($this->search);
-
-            $consulta->where(function ($query) use ($buscar) {
-                $query
-                    ->where('name', 'like', "%{$buscar}%")
-                    ->orWhere('email', 'like', "%{$buscar}%");
-            });
-        }
-
-        // Filtros avanzados
-        $this->applyTableFilters($consulta);
-
-        // Ordenamiento
-        $this->applyTableSorting($consulta);
-
-        // Paginación
-        $rows = $consulta->paginate(
-            $this->getPerPage()
-        );
-
         return view(
             'livewire.administracion.asignadores',
             [
-                'headers' => $headers,
-                'rows' => $rows,
                 'totalAsignadores' => User::query()
                     ->where('rol', 'asignador')
                     ->count(),

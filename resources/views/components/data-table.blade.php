@@ -23,47 +23,47 @@
             </flux:select>
 
             @if ($actions)
-                <flux:dropdown>
+            <flux:dropdown>
 
-                    <flux:button icon:trailing="chevron-down">Actions</flux:button>
+                <flux:button icon:trailing="chevron-down">Actions</flux:button>
 
-                    <flux:menu keep-open class="menu-filtros-tabla">
+                <flux:menu keep-open class="menu-filtros-tabla">
 
-                        <flux:menu.item icon="plus">New post</flux:menu.item>
+                    <flux:menu.item icon="plus">New post</flux:menu.item>
 
-                        <flux:menu.separator />
+                    <flux:menu.separator />
 
-                        <flux:menu.submenu heading="Sort by">
+                    <flux:menu.submenu heading="Sort by">
 
-                            <flux:menu.radio.group>
+                        <flux:menu.radio.group>
 
-                                <flux:menu.radio checked>Name</flux:menu.radio>
+                            <flux:menu.radio checked>Name</flux:menu.radio>
 
-                                <flux:menu.radio>Date</flux:menu.radio>
+                            <flux:menu.radio>Date</flux:menu.radio>
 
-                                <flux:menu.radio>Popularity</flux:menu.radio>
+                            <flux:menu.radio>Popularity</flux:menu.radio>
 
-                            </flux:menu.radio.group>
+                        </flux:menu.radio.group>
 
-                        </flux:menu.submenu>
+                    </flux:menu.submenu>
 
-                        <flux:menu.submenu heading="Filter">
+                    <flux:menu.submenu heading="Filter">
 
-                            <flux:menu.checkbox checked>Draft</flux:menu.checkbox>
+                        <flux:menu.checkbox checked>Draft</flux:menu.checkbox>
 
-                            <flux:menu.checkbox checked>Published</flux:menu.checkbox>
+                        <flux:menu.checkbox checked>Published</flux:menu.checkbox>
 
-                            <flux:menu.checkbox>Archived</flux:menu.checkbox>
+                        <flux:menu.checkbox>Archived</flux:menu.checkbox>
 
-                        </flux:menu.submenu>
+                    </flux:menu.submenu>
 
-                        <flux:menu.separator />
+                    <flux:menu.separator />
 
-                        <flux:menu.item variant="danger" icon="trash">Delete</flux:menu.item>
+                    <flux:menu.item variant="danger" icon="trash">Delete</flux:menu.item>
 
-                    </flux:menu>
+                </flux:menu>
 
-                </flux:dropdown>
+            </flux:dropdown>
             @endif
 
         </div>
@@ -74,70 +74,73 @@
                 type="search" wire:key="search-input" />
 
             @if ($advanceFilter)
-                <flux:dropdown>
-                    <flux:button icon="funnel" />
+            <flux:dropdown>
+                <flux:button icon="funnel" />
 
-                    <flux:menu keep-open class="menu-filtros-tabla">
+                <flux:menu keep-open class="menu-filtros-tabla">
 
-                        <div class="panel-filtros">
+                    <div class="panel-filtros">
 
-                            <div class="panel-filtros-acciones">
-                                <flux:button wire:click="addFilter()" icon="plus" class="boton-agregar-filtro"
-                                    size="sm" />
+                        <div class="panel-filtros-acciones">
+                            <flux:button wire:click="addFilter()" icon="plus" class="boton-agregar-filtro" size="sm" />
 
-                                <flux:button wire:click="clearFilters()" icon="trash" class="boton-limpiar-filtro"
-                                    size="sm" />
-                            </div>
-
-                            @foreach ($this->filters as $index => $filter)
-                                <div class="fila-filtro" wire:key="filtro-{{ $index }}">
-
-                                    <div class="campo-filtro">
-                                        <flux:select wire:key="field-campo-{{ $index }}"
-                                            wire:model.live.debounce.500ms="filters.{{ $index }}.field"
-                                            placeholder="Campo">
-                                            @foreach ($headers as $header)
-                                                @if ($header['index'] !== 'actions')
-                                                    <flux:select.option value="{{ $header['index'] }}">
-                                                        {{ $header['label'] }}
-                                                    </flux:select.option>
-                                                @endif
-                                            @endforeach
-                                        </flux:select>
-                                    </div>
-
-                                    <div class="campo-filtro">
-                                        <flux:select wire:key="field-operator-{{ $index }}"
-                                            wire:model.live.debounce.500ms="filters.{{ $index }}.operator"
-                                            placeholder="Operador">
-                                            @foreach ($this->getGroupedOperators() as $group => $operators)
-                                                <optgroup label="{{ $group }}">
-                                                    @foreach ($operators as $operator)
-                                                        <flux:select.option value="{{ $operator }}">
-                                                            {{ $operator }}
-                                                        </flux:select.option>
-                                                    @endforeach
-                                                </optgroup>
-                                            @endforeach
-                                        </flux:select>
-                                    </div>
-
-                                    <div class="campo-filtro">
-                                        <flux:input x-on:keydown.stop="" wire:key="field-value-{{ $index }}"
-                                            wire:model.live.debounce.500ms="filters.{{ $index }}.value"
-                                            placeholder="Valor" />
-                                    </div>
-
-                                    <flux:button wire:click="deleteFilter({{ $index }})" icon="x-mark"
-                                        variant="ghost" class="boton-eliminar-fila" size="sm" />
-
-                                </div>
-                            @endforeach
-
+                            <flux:button wire:click="clearFilters()" icon="trash" class="boton-limpiar-filtro"
+                                size="sm" />
                         </div>
 
-                    </flux:menu>
-                </flux:dropdown>
+                        @foreach ($this->filters as $index => $filter)
+                        <div class="fila-filtro" wire:key="filtro-{{ $index }}">
+
+                            <div class="campo-filtro">
+                                <flux:select wire:key="field-campo-{{ $index }}"
+                                    wire:model.live.debounce.500ms="filters.{{ $index }}.field" placeholder="Campo">
+                                    @foreach ($headers as $header)
+                                    @if ($header['index'] !== 'actions')
+                                    <flux:select.option value="{{ $header['index'] }}">
+                                        {{ $header['label'] }}
+                                    </flux:select.option>
+                                    @endif
+                                    @endforeach
+                                </flux:select>
+                            </div>
+                            {{-- operaciones adicionales --}}
+                            {{-- <div class="campo-filtro">
+                                <flux:select wire:key="field-operator-{{ $index }}"
+                                    wire:model.live.debounce.500ms="filters.{{ $index }}.operator"
+                                    placeholder="Operador">
+                                    @foreach ($this->getGroupedOperators() as $group => $operators)
+                                    <optgroup label="{{ $group }}">
+                                        @foreach ($operators as $operator)
+                                        <flux:select.option value="{{ $operator }}">
+                                            {{ $operator }}
+                                        </flux:select.option>
+                                        @endforeach
+                                    </optgroup>
+                                    @endforeach
+                                </flux:select>
+                            </div> --}}
+
+
+                            <div class="campo-filtro">
+                                <flux:input value="=" readonly class="text-center"
+                                    wire:key="field-operator-{{ $index }}" />
+                            </div>
+
+                            <div class="campo-filtro">
+                                <flux:input x-on:keydown.stop="" wire:key="field-value-{{ $index }}"
+                                    wire:model.live.debounce.500ms="filters.{{ $index }}.value" placeholder="Valor" />
+                            </div>
+
+                            <flux:button wire:click="deleteFilter({{ $index }})" icon="x-mark" variant="ghost"
+                                class="boton-eliminar-fila" size="sm" />
+
+                        </div>
+                        @endforeach
+
+                    </div>
+
+                </flux:menu>
+            </flux:dropdown>
             @endif
 
 
@@ -145,11 +148,10 @@
 
     </div>
 
-    <div
-        wire:loading.delay
-        wire:target="search,per_page,sort,filters,addFilter,clearFilters,deleteFilter"
-        class="w-full"
-    >
+    {{-- wire:target="search,per_page,sort,filters,addFilter,clearFilters,deleteFilter" --}}
+
+    <div wire:loading.delay wire:target="search,per_page,sort,clearFilters,deleteFilter"
+        class="w-full">
 
         <flux:skeleton.group animate="shimmer">
 
@@ -158,7 +160,7 @@
                 <flux:table.columns>
 
                     @foreach ($headers as $header)
-                        <flux:table.column>{{ $header['label'] }}</flux:table.column>
+                    <flux:table.column>{{ $header['label'] }}</flux:table.column>
                     @endforeach
 
                 </flux:table.columns>
@@ -166,35 +168,35 @@
                 <flux:table.rows>
 
                     @foreach (range(1, 5) as $order)
-                        <flux:table.row>
+                    <flux:table.row>
 
-                            @foreach ($headers as $header)
-                                @if ($loop->first)
-                                    <flux:table.cell>
+                        @foreach ($headers as $header)
+                        @if ($loop->first)
+                        <flux:table.cell>
 
-                                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2">
 
-                                            <flux:skeleton class="rounded-full size-5" />
+                                <flux:skeleton class="rounded-full size-5" />
 
-                                            <div class="flex-1">
+                                <div class="flex-1">
 
-                                                <flux:skeleton.line style="width: {{ rand(50, 100) }}%" />
+                                    <flux:skeleton.line style="width: {{ rand(50, 100) }}%" />
 
-                                            </div>
+                                </div>
 
-                                        </div>
+                            </div>
 
-                                    </flux:table.cell>
-                                @else
-                                    <flux:table.cell>
+                        </flux:table.cell>
+                        @else
+                        <flux:table.cell>
 
-                                        <flux:skeleton.line />
+                            <flux:skeleton.line />
 
-                                    </flux:table.cell>
-                                @endif
-                            @endforeach
+                        </flux:table.cell>
+                        @endif
+                        @endforeach
 
-                        </flux:table.row>
+                    </flux:table.row>
                     @endforeach
 
                 </flux:table.rows>
@@ -205,88 +207,85 @@
 
     </div>
 
-    <div
-        wire:loading.remove.delay
-        wire:target="search,per_page,sort,filters,addFilter,clearFilters,deleteFilter"
-    >
+    <div wire:loading.remove.delay wire:target="search,per_page,sort,clearFilters,deleteFilter">
 
         <div class="lg:hidden">
 
             @forelse ($rows as $index => $rowData)
 
-                <flux:card class="my-4">
+            <flux:card class="my-4">
 
-                    <flux:table>
+                <flux:table>
 
-                        @if ($selectable)
-                            <flux:table.rows>
+                    @if ($selectable)
+                    <flux:table.rows>
 
-                                <flux:table.cell align="start">
+                        <flux:table.cell align="start">
 
-                                    <flux:checkbox wire:model.live="selectedRows" value="{{ $rowData->id }}" />
+                            <flux:checkbox wire:model.live="selectedRows" value="{{ $rowData->id }}" />
 
-                                </flux:table.cell>
+                        </flux:table.cell>
 
-                            </flux:table.rows>
-                        @endif
+                    </flux:table.rows>
+                    @endif
 
-                        @foreach ($headers as $header)
-                            <flux:table.rows class="even:bg-zinc-100 dark:even:bg-zinc-600">
+                    @foreach ($headers as $header)
+                    <flux:table.rows class="even:bg-zinc-100 dark:even:bg-zinc-600">
 
+                        @php
+
+                        $columnIndex = $header['index'];
+
+                        $slotKey = 'column_' . str_replace('.', '_', $columnIndex);
+
+                        $slot = $capturedSlots[$slotKey] ?? null;
+
+                        @endphp
+
+                        <flux:table.cell align="start">
+
+                            <span class="font-medium uppercase pl-4">
+
+                                {{ $header['label'] . ($header['index'] !== 'actions' ? ' :' : '') }}
+
+                            </span>
+
+                        </flux:table.cell>
+
+                        <flux:table.cell title="{{ data_get($rowData, $columnIndex, '') }}" align="end">
+
+                            <div class="pr-4">
+
+                                @if ($slot)
                                 @php
 
-                                    $columnIndex = $header['index'];
+                                try {
+                                $result = $slot->call($this, $rowData, $loop ?? null);
 
-                                    $slotKey = 'column_' . str_replace('.', '_', $columnIndex);
+                                echo $result instanceof HtmlString ? $result->toHtml() : $result;
+                                } catch (\Throwable $e) {
+                                $context = ['row' => $rowData, 'loop' => $loop ?? null];
 
-                                    $slot = $capturedSlots[$slotKey] ?? null;
+                                $result = app()->call($slot, $context);
+
+                                echo $result instanceof HtmlString ? $result->toHtml() : $result;
+                                }
 
                                 @endphp
+                                @else
+                                {{ data_get($rowData, $columnIndex, '') }}
+                                @endif
 
-                                <flux:table.cell align="start">
+                            </div>
 
-                                    <span class="font-medium uppercase pl-4">
+                        </flux:table.cell>
 
-                                        {{ $header['label'] . ($header['index'] !== 'actions' ? ' :' : '') }}
+                    </flux:table.rows>
+                    @endforeach
 
-                                    </span>
+                </flux:table>
 
-                                </flux:table.cell>
-
-                                <flux:table.cell title="{{ data_get($rowData, $columnIndex, '') }}" align="end">
-
-                                    <div class="pr-4">
-
-                                        @if ($slot)
-                                            @php
-
-                                                try {
-                                                    $result = $slot->call($this, $rowData, $loop ?? null);
-
-                                                    echo $result instanceof HtmlString ? $result->toHtml() : $result;
-                                                } catch (\Throwable $e) {
-                                                    $context = ['row' => $rowData, 'loop' => $loop ?? null];
-
-                                                    $result = app()->call($slot, $context);
-
-                                                    echo $result instanceof HtmlString ? $result->toHtml() : $result;
-                                                }
-
-                                            @endphp
-                                        @else
-                                            {{ data_get($rowData, $columnIndex, '') }}
-                                        @endif
-
-                                    </div>
-
-                                </flux:table.cell>
-
-                            </flux:table.rows>
-                        @endforeach
-
-                    </flux:table>
-
-                </flux:card>
+            </flux:card>
 
             @empty
 
@@ -303,31 +302,32 @@
                 <flux:table.columns class="bg-white dark:bg-zinc-900">
 
                     @if ($selectable)
-                        <flux:table.column>
+                    <flux:table.column>
 
-                            <div class="flex items-center">
+                        <div class="flex items-center">
 
-                                {{-- <flux:checkbox wire:change="selectedAllCurrentPage({{ json_encode($rows) }})" /> --}}
+                            {{--
+                            <flux:checkbox wire:change="selectedAllCurrentPage({{ json_encode($rows) }})" /> --}}
 
-                            </div>
+                        </div>
 
-                        </flux:table.column>
+                    </flux:table.column>
                     @endif
 
                     <!-- sort by columnas -->
                     @foreach ($headers as $header)
-                        <flux:table.column :sortable="$header['index'] !== 'actions'"
-                            :sorted="$this->sortBy === $header['index']" :direction="$this->sortDirection"
-                            wire:click="sort('{{ $header['index'] != 'actions' ? $header['index'] : '' }}')"
-                            align="{{ $header['align'] ?? 'start' }}" width="{{ $header['width'] ?? null }}">
+                    <flux:table.column :sortable="$header['index'] !== 'actions'"
+                        :sorted="$this->sortBy === $header['index']" :direction="$this->sortDirection"
+                        wire:click="sort('{{ $header['index'] != 'actions' ? $header['index'] : '' }}')"
+                        align="{{ $header['align'] ?? 'start' }}" width="{{ $header['width'] ?? null }}">
 
-                            <span class="{{ $header['class'] ?? '' }} cursor-pointer">
+                        <span class="{{ $header['class'] ?? '' }} cursor-pointer">
 
-                                {{ $header['label'] }}
+                            {{ $header['label'] }}
 
-                            </span>
+                        </span>
 
-                        </flux:table.column>
+                    </flux:table.column>
                     @endforeach
 
                 </flux:table.columns>
@@ -336,73 +336,98 @@
 
                     @forelse($rows as $index => $rowData)
 
-                        <flux:table.row wire:key="{{ $rowData->id }}"
-                            class="dark:hover:bg-neutral-700 hover:bg-neutral-100 text-neutral-600 dark:text-neutral-200">
+                    <flux:table.row wire:key="{{ $rowData->id }}"
+                        class="dark:hover:bg-neutral-700 hover:bg-neutral-100 text-neutral-600 dark:text-neutral-200">
 
-                            @if ($selectable)
-                                <flux:table.cell align="{{ $header['align'] ?? 'start' }}"
-                                    width="{{ $header['width'] ?? null }}">
+                        @if ($selectable)
+                        <flux:table.cell align="{{ $header['align'] ?? 'start' }}"
+                            width="{{ $header['width'] ?? null }}">
 
-                                    <div class="flex items-center">
+                            <div class="flex items-center">
 
-                                        <flux:checkbox wire:model.live="selectedRows" value="{{ $rowData->id }}" />
+                                <flux:checkbox wire:model.live="selectedRows" value="{{ $rowData->id }}" />
 
-                                    </div>
+                            </div>
 
-                                </flux:table.cell>
+                        </flux:table.cell>
+                        @endif
+
+                        @foreach ($headers as $header)
+                        @php
+
+                        $columnIndex = $header['index'];
+
+                        $slotKey = 'column_' . str_replace('.', '_', $columnIndex);
+
+                        $slot = $capturedSlots[$slotKey] ?? null;
+
+                        @endphp
+
+                        <flux:table.cell title="{{ data_get($rowData, $columnIndex, '') }}"
+                            align="{{ $header['align'] ?? 'start' }}" width="{{ $header['width'] ?? null }}">
+
+                            @if ($slot)
+                            @php
+
+                            try {
+                            $result = $slot->call($this, $rowData, $loop ?? null);
+
+                            echo $result instanceof HtmlString ? $result->toHtml() : $result;
+                            } catch (\Throwable $e) {
+                            $context = ['row' => $rowData, 'loop' => $loop ?? null];
+
+                            $result = app()->call($slot, $context);
+
+                            echo $result instanceof HtmlString ? $result->toHtml() : $result;
+                            }
+
+                            @endphp
+                            @else
+                            {{ data_get($rowData, $columnIndex, '') }}
                             @endif
 
-                            @foreach ($headers as $header)
-                                @php
+                        </flux:table.cell>
+                        @endforeach
 
-                                    $columnIndex = $header['index'];
-
-                                    $slotKey = 'column_' . str_replace('.', '_', $columnIndex);
-
-                                    $slot = $capturedSlots[$slotKey] ?? null;
-
-                                @endphp
-
-                                <flux:table.cell title="{{ data_get($rowData, $columnIndex, '') }}"
-                                    align="{{ $header['align'] ?? 'start' }}" width="{{ $header['width'] ?? null }}">
-
-                                    @if ($slot)
-                                        @php
-
-                                            try {
-                                                $result = $slot->call($this, $rowData, $loop ?? null);
-
-                                                echo $result instanceof HtmlString ? $result->toHtml() : $result;
-                                            } catch (\Throwable $e) {
-                                                $context = ['row' => $rowData, 'loop' => $loop ?? null];
-
-                                                $result = app()->call($slot, $context);
-
-                                                echo $result instanceof HtmlString ? $result->toHtml() : $result;
-                                            }
-
-                                        @endphp
-                                    @else
-                                        {{ data_get($rowData, $columnIndex, '') }}
-                                    @endif
-
-                                </flux:table.cell>
-                            @endforeach
-
-                        </flux:table.row>
+                    </flux:table.row>
 
                     @empty
+                    {{-- mensaje buscador --}}
+                    <flux:table.row>
+                        <flux:table.cell align="center" colspan="{{ count($headers) }}">
+                            <div class="flex flex-col items-center justify-center px-6 py-12 text-center">
 
-                        <flux:table.row>
+                                {{-- Ícono --}}
+                                <div class="mb-4 flex size-16 items-center justify-center
+                                                rounded-2xl border border-zinc-200
+                                                bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
 
-                            <flux:table.cell align="center" colspan="{{ count($headers) }}">
+                                    <flux:icon.magnifying-glass
+                                        class="size-8 text-zinc-400 dark:text-zinc-500"
+                                    />
+                                </div>
 
-                                No results found.
+                                {{-- Título --}}
+                                <h3 class="mb-2 text-base font-semibold
+                                            text-zinc-800 dark:text-zinc-100">
+                                    Sin resultados
+                                </h3>
 
-                            </flux:table.cell>
+                                {{-- Mensaje personalizado --}}
+                                <p class="max-w-sm text-sm leading-relaxed
+                                            text-zinc-500 dark:text-zinc-400">
+                                    {{ $attributes->get('empty-message', $emptyMessage ?? 'No se encontraron
+                                    registros.') }}
+                                </p>
 
-                        </flux:table.row>
+                                {{-- Texto de ayuda --}}
+                                <p class="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+                                    Intenta modificar tu búsqueda o los filtros aplicados.
+                                </p>
 
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
                     @endforelse
 
                 </flux:table.rows>
@@ -514,6 +539,4 @@
             gap: 12px;
         }
     }
-
-
 </style>
