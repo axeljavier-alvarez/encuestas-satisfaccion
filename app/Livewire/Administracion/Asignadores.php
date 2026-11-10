@@ -67,18 +67,18 @@ class Asignadores extends Component
         $query = User::query()
         ->where('rol', 'asignador')
         ->withCount('plantillas');
-        // busqueda por nombre o correo
-        if (trim($this->search) !== ''){
-            $buscar = trim($this->search);
-            $query->where(function ($q) use ($buscar){
-                $q->where('name', 'like', "%{$buscar}%")
-                  ->orWhere('email', 'like', "%{$buscar}%");
-            });
-        }
-        // filtros avanzados
-        $this->applyTableFilters($query);
-        // ordenamiento
-        $this->applyTableSorting($query);
+         // Preparar filtros con la configuración actual de DataTable
+        $filters = $this->processFilters();
+
+        // Aplicar búsqueda, filtros y ordenamiento con Searchable
+        $query->filterAdvance($this->headers, [
+            'search' => $this->search,
+            'filters' => $filters,
+            'sort' => [
+                'field' => $this->sortBy,
+                'direction' => $this->sortDirection,
+            ],
+        ]);
 
         return $query->paginate($this->getPerPage());
     }
