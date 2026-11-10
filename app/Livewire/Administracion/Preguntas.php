@@ -111,10 +111,20 @@ class Preguntas extends Component
         ? $factores->firstWhere('id', $this->factorSeleccionado)
         : null;
 
-        
+        $temas = $factorActual
+        ? $factorActual->temas()->orderBy('id')->get()
+        : collect();
+
+        $estadisticas = Pregunta::query()
+        ->selectRaw('COUNT(*) as total')
+        ->selectRaw('SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) as activas')
+        ->selectRaw('SUM(CASE WHEN activo = 0 THEN 1 ELSE 0 END) as inactivas')
+        ->first();
+
         return view('livewire.administracion.preguntas', [
             'factores' => $factores,
             'factorActual' => $factorActual,
+            'temas' => $temas,
             'totalPreguntas' => $factores->sum('preguntas_count')
         ]);
     }

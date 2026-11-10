@@ -1,12 +1,13 @@
 <div class="mx-auto w-full max-w-7xl space-y-6 px-2 py-6 sm:px-4">
 
     {{-- ENCABEZADO --}}
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
-        <div class="flex items-center gap-4">
+        {{-- TÍTULO E ICONO --}}
+        <div class="flex min-w-0 items-center gap-4 lg:flex-1">
 
-            <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-500/10">
-                <flux:icon.question-mark-circle class="size-10 text-blue-700 dark:text-blue-400" />
+            <div class="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-500/10">
+                <flux:icon.question-mark-circle class="size-9 text-blue-700 dark:text-blue-400" />
             </div>
 
             <div class="min-w-0">
@@ -21,18 +22,91 @@
 
         </div>
 
-        {{-- <div class="flex flex-wrap items-center gap-3">
+        {{-- INDICADORES --}}
+        <div class="grid w-full grid-cols-3 gap-2 sm:gap-3 lg:w-auto lg:grid-cols-3 lg:shrink-0">
 
-            <flux:badge color="blue" size="lg">
-                {{ $totalPreguntas }} preguntas
-            </flux:badge>
+            {{-- TOTAL DE PREGUNTAS --}}
+            <div
+                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
 
-            <flux:button variant="primary" icon="plus" disabled>
-                Nueva pregunta
-            </flux:button>
+                <div
+                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/10 sm:flex">
+                    <flux:icon.list-bullet class="size-5 text-blue-600 dark:text-blue-400" />
+                </div>
 
-        </div> --}}
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                        Total preguntas
+                    </p>
+
+                    <p class="mt-1 text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">
+                        {{ $estadisticas->total ?? 0 }}
+                    </p>
+                </div>
+
+            </div>
+
+            {{-- PREGUNTAS ACTIVAS --}}
+            <div
+                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
+
+                <div
+                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/10 sm:flex">
+                    <flux:icon.check-circle class="size-5 text-green-600 dark:text-green-400" />
+                </div>
+
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                        Activas
+                    </p>
+
+                    <p class="mt-1 text-xl font-bold text-green-600 dark:text-green-400 sm:text-2xl">
+                        {{ $estadisticas->activas ?? 0 }}
+                    </p>
+                </div>
+
+            </div>
+
+            {{-- PREGUNTAS INACTIVAS --}}
+            <div
+                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
+
+                <div
+                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/10 sm:flex">
+                    <flux:icon.x-circle class="size-5 text-red-600 dark:text-red-400" />
+                </div>
+
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                        Inactivas
+                    </p>
+
+                    <p class="mt-1 text-xl font-bold text-red-600 dark:text-red-400 sm:text-2xl">
+                        {{ $estadisticas->inactivas ?? 0 }}
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
+
+    {{-- arreglo de iconos --}}
+    @php
+        $iconosFactores = [
+            'Recomendación' => 'star',
+            'Atribución institucional' => 'building-library',
+            'Difusión y acceso' => 'megaphone',
+            'Vinculación municipal' => 'link',
+            'Atención y acompañamiento' => 'user-group',
+            'Calidad del servicio o contenido' => 'check-badge',
+            'Condiciones de prestación' => 'adjustments-horizontal',
+            'Utilidad y resultados' => 'chart-bar',
+            'Mejoras y necesidades futuras' => 'light-bulb',
+            'Incidencias e integridad' => 'shield-check',
+        ];
+    @endphp
 
     @if (!$factorActual)
 
@@ -55,31 +129,15 @@
 
         </div>
 
-        @php
-            $iconosFactores = [
-                'Recomendación' => 'star',
-                'Atribución institucional' => 'building-library',
-                'Difusión y acceso' => 'megaphone',
-                'Vinculación municipal' => 'link',
-                'Atención y acompañamiento' => 'user-group',
-                'Calidad del servicio o contenido' => 'check-badge',
-                'Condiciones de prestación' => 'adjustments-horizontal',
-                'Utilidad y resultados' => 'chart-bar',
-                'Mejoras y necesidades futuras' => 'light-bulb',
-                'Incidencias e integridad' => 'shield-check',
-            ];
-        @endphp
+
 
         {{-- TARJETAS DE FACTORES --}}
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
             @foreach ($factores as $factor)
-                <a
-                    href="{{ route('administracion.preguntas.factor', ['slug' => $factor->slug]) }}"
-                    wire:navigate
+                <a href="{{ route('administracion.preguntas.factor', ['slug' => $factor->slug]) }}" wire:navigate
                     wire:key="factor-{{ $factor->id }}"
-                    class="group flex min-h-48 w-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
-                >
+                    class="group flex min-h-48 w-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900">
 
 
                     <div class="flex w-full items-start justify-between gap-3">
@@ -128,35 +186,47 @@
     @else
         {{-- MODULO DE PREGUNTAS --}}
         <div>
-            <flux:button
-                :href="route('administracion.preguntas')"
-                wire:navigate
-                variant="ghost"
-                icon="arrow-left"
-            >
+            <flux:button :href="route('administracion.preguntas')" wire:navigate variant="ghost" icon="arrow-left">
                 Volver a factores
             </flux:button>
         </div>
-        {{-- información del factor --}}
-        <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 dark:border-blue-500/20 dark:bg-blue-500/5">
 
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {{-- INFORMACIÓN DEL FACTOR SELECCIONADO --}}
+        <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
-                <div>
-                    <flux:text class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
-                        Factor seleccionado
-                    </flux:text>
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
-                    <flux:heading size="xl" class="mt-1">
-                        {{ $factorActual->nombre }}
-                    </flux:heading>
+                {{-- ICONO E INFORMACIÓN --}}
+                <div class="flex min-w-0 items-center gap-4">
 
-                    <flux:text class="mt-1 text-sm">
-                        Preguntas asociadas a este factor.
-                    </flux:text>
+                    {{-- Icono correspondiente al factor --}}
+                    <div
+                        class="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                        <flux:icon :name="$iconosFactores[$factorActual->nombre] ?? 'squares-2x2'" class="size-10" />
+                    </div>
+
+                    {{-- Información --}}
+                    <div class="min-w-0">
+
+                        <flux:text
+                            class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
+                            Factor seleccionado
+                        </flux:text>
+
+                        <flux:heading size="xl" class="mt-1">
+                            {{ $factorActual->nombre }}
+                        </flux:heading>
+
+                        <flux:text class="mt-1 text-sm">
+                            Preguntas asociadas a este factor.
+                        </flux:text>
+
+                    </div>
+
                 </div>
 
-                <div class="flex flex-wrap gap-2">
+                {{-- CONTADORES Y ACCIONES --}}
+                <div class="flex flex-wrap items-center gap-2 lg:justify-end">
 
                     <flux:badge color="blue" size="lg">
                         {{ $factorActual->preguntas_count }} preguntas
@@ -166,70 +236,134 @@
                         {{ $factorActual->temas_count }} temas
                     </flux:badge>
 
+                    <flux:modal.trigger name="temas-factor">
+                        <flux:button variant="outline" size="sm" icon="book-open">
+                            Ver temas
+                        </flux:button>
+                    </flux:modal.trigger>
+
                 </div>
 
             </div>
 
         </div>
-        {{-- panel principal --}}
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <x-data-table
-            :headers="$headers"
-            :rows="$this->rows"
-            :advance-filter="true"
-            empty-message="No se encontraron preguntas.">
 
-            @interact('id', $row)
-            {{ $row->id }}
-            @endinteract
 
-            @interact('codigo', $row)
-                <flux:badge color="blue" size="sm">
-                    {{ $row->codigo }}
-                </flux:badge>
-            @endinteract
+        {{-- MODAL DE TEMAS --}}
+        <flux:modal name="temas-factor" class="w-full max-w-xl">
 
-            @interact('texto', $row)
-                <div class="flex items-start gap-3">
+            <div class="space-y-5">
 
-                    <div class="min-w-0 max-w-xl">
+                {{-- Encabezado --}}
+                <div>
+                    <flux:heading size="lg">
+                        Temas del factor
+                    </flux:heading>
 
-                        <p class="whitespace-normal font-medium text-zinc-900 dark:text-zinc-100">
-                            {{ $row->texto }}
-                        </p>
+                    <flux:text class="mt-1 text-sm">
+                        {{ $factorActual->nombre }}
+                    </flux:text>
+                </div>
 
-                        @if ($row->es_nps)
-                            <flux:badge color="blue" size="sm" class="mt-2">
-                                NPS
-                            </flux:badge>
-                        @endif
+                {{-- Cantidad --}}
+                <div class="flex items-center justify-between">
+                    <flux:text class="text-sm">
+                        Temas registrados
+                    </flux:text>
 
-                    </div>
+                    <flux:badge color="blue">
+                        {{ $temas->count() }}
+                    </flux:badge>
+                </div>
+
+                {{-- Listado con scroll --}}
+                <div class="max-h-80 space-y-2 overflow-y-auto pr-2">
+
+                    @forelse ($temas as $tema)
+                        <div wire:key="tema-modal-{{ $tema->id }}"
+                            class="flex items-center gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+
+                            <div
+                                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                                <flux:icon.book-open class="size-5" />
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    {{ $tema->nombre }}
+                                </p>
+                            </div>
+
+                        </div>
+
+                    @empty
+
+                        <div class="py-8 text-center">
+                            <flux:icon.inbox class="mx-auto mb-3 size-9 text-zinc-400" />
+
+                            <flux:text class="text-sm">
+                                No hay temas registrados.
+                            </flux:text>
+                        </div>
+                    @endforelse
 
                 </div>
-            @endinteract
 
-            @interact('obligatoria', $row)
-                <flux:badge
-                    :color="$row->obligatoria ? 'blue' : 'zinc'"
-                    size="sm"
-                >
-                    {{ $row->obligatoria ? 'Sí' : 'No' }}
-                </flux:badge>
-            @endinteract
+            </div>
 
-            @interact('activo', $row)
-                <flux:badge
-                    :color="$row->activo ? 'green' : 'red'"
-                    size="sm"
-                >
-                    {{ $row->activo ? 'Activo' : 'Inactivo' }}
-                </flux:badge>
-            @endinteract
+        </flux:modal>
+
+
+        {{-- panel principal --}}
+        <div
+            class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
+                empty-message="No se encontraron preguntas.">
+
+                @interact('id', $row)
+                    {{ $row->id }}
+                @endinteract
+
+                @interact('codigo', $row)
+                    <flux:badge color="blue" size="sm">
+                        {{ $row->codigo }}
+                    </flux:badge>
+                @endinteract
+
+                @interact('texto', $row)
+                    <div class="flex items-start gap-3">
+
+                        <div class="min-w-0 max-w-xl">
+
+                            <p class="whitespace-normal font-medium text-zinc-900 dark:text-zinc-100">
+                                {{ $row->texto }}
+                            </p>
+
+                            @if ($row->es_nps)
+                                <flux:badge color="blue" size="sm" class="mt-2">
+                                    NPS
+                                </flux:badge>
+                            @endif
+
+                        </div>
+
+                    </div>
+                @endinteract
+
+                @interact('obligatoria', $row)
+                    <flux:badge :color="$row->obligatoria ? 'blue' : 'zinc'" size="sm">
+                        {{ $row->obligatoria ? 'Sí' : 'No' }}
+                    </flux:badge>
+                @endinteract
+
+                @interact('activo', $row)
+                    <flux:badge :color="$row->activo ? 'green' : 'red'" size="sm">
+                        {{ $row->activo ? 'Activo' : 'Inactivo' }}
+                    </flux:badge>
+                @endinteract
 
 
             </x-data-table>
         </div>
     @endif
 </div>
-
