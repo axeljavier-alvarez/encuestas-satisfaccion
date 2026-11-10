@@ -48,6 +48,7 @@ class Preguntas extends Component
         Factor::findOrFail($factorId);
         $this->factorSeleccionado = $factorId;
         $this->search = '';
+        $this->clearFilters();
         $this->resetPage();
     }
 
@@ -55,33 +56,39 @@ class Preguntas extends Component
     {
         $this->factorSeleccionado = null;
         $this->search  = '';
+        $this->clearFilters();
         $this->resetPage();
     }
 
+    
     #[Computed]
     public function rows()
     {
         $query = Pregunta::query();
 
-        if ($this->factorSeleccionado === null){
+        // Filtrar únicamente las preguntas del factor seleccionado
+        if ($this->factorSeleccionado === null) {
             $query->whereRaw('1 = 0');
         } else {
             $query->where('factor_id', $this->factorSeleccionado);
         }
-        // Búsqueda por código o texto
-        if (trim($this->search) !== '') {
-            $buscar = trim($this->search);
 
-            $query->where(function ($q) use ($buscar) {
-                $q->where('codigo', 'like', "%{$buscar}%")
-                    ->orWhere('texto', 'like', "%{$buscar}%");
-            });
-        }
+        // Preparar filtros con la configuración actual de DataTable
+        $filters = $this->processFilters();
 
-        $this->applyTableFilters($query);
-        $this->applyTableSorting($query);
+        // Aplicar búsqueda, filtros y ordenamiento con Searchable
+        $query->filterAdvance($this->headers, [
+            'search' => $this->search,
+            'filters' => $filters,
+            'sort' => [
+                'field' => $this->sortBy,
+                'direction' => $this->sortDirection,
+            ],
+        ]);
+
         return $query->paginate($this->getPerPage());
     }
+
 
     public function render()
     {

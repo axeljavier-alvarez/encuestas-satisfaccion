@@ -108,6 +108,15 @@ trait Searchable
      */
     protected function applySmartFieldSearch(Builder $query, string $field, string $term): void
     {
+        // Los campos booleanos se buscan mediante su etiqueta visible.
+        if ($this->isBooleanLabelField($field)) {
+            $value = $this->resolveBooleanLabel($field, $term);
+            if ($value !== null) {
+                $query->orWhere($this->resolveFieldWithAlias($query, $field), $value);
+            }
+            return;
+        }
+
         if (Str::contains($field, '.')) {
             $this->applyRelationSearch($query, $field, $term);
         } elseif ($this->isAccessorField($field)) {
@@ -453,7 +462,7 @@ trait Searchable
     /**
      * Aplica un filtro estándar sobre un campo local
      */
-    
+
     protected function applyStandardFilter(
         Builder $query,
         string $field,
@@ -464,6 +473,22 @@ trait Searchable
         $value = $this->normalizeTerm($value);
 
         $fieldWithAlias = $this->resolveFieldWithAlias($query, $field);
+
+        // Traduce las etiquetas de columnas booleanas a 1 y 0.
+        // Se respetan los operadores = y != de los filtros avanzados.
+        if ($this->isBooleanLabelField($field) && !in_array($operator, ['null', 'not null'], true)) {
+            $booleanValue = $this->resolveBooleanLabel($field, (string) $value);
+
+            if ($booleanValue === null) {
+                $query->whereRaw('1 = 0', [], $boolean);
+                return;
+            }
+
+            if (in_array($operator, ['=', '!=', '<>', '>', '<', '>=', '<='], true)) {
+                $query->where($fieldWithAlias, $operator, $booleanValue, $boolean);
+                return;
+            }
+        }
 
         match ($operator) {
             'null' => $query->whereNull($fieldWithAlias, $boolean),
@@ -520,6 +545,27 @@ trait Searchable
     /**
      * Detecta si un valor es una fecha en formato estándar
      */
+    /** Determina si el campo utiliza etiquetas booleanas conocidas. */
+    protected function isBooleanLabelField(string $field): bool
+    {
+        return in_array(Str::afterLast($field, '.'), ['activo', 'obligatoria'], true);
+    }
+
+    /** Convierte etiquetas visibles en el valor almacenado. */
+    protected function resolveBooleanLabel(string $field, string $value): ?int
+    {
+        $column = Str::afterLast($field, '.');
+        $term = mb_strtolower(trim($value), 'UTF-8');
+
+        $labels = match ($column) {
+            'activo' => ['activo' => 1, 'activa' => 1, 'inactivo' => 0, 'inactiva' => 0, '1' => 1, '0' => 0],
+            'obligatoria' => ['sí' => 1, 'si' => 1, 'no' => 0, '1' => 1, '0' => 0],
+            default => [],
+        };
+
+        return $labels[$term] ?? null;
+    }
+
     protected function isDateValue(mixed $value): bool
     {
         if (!is_string($value)) {
