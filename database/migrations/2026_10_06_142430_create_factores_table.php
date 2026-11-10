@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('factores', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 200)->unique();
+            $table->string('slug', 150)->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();
         });

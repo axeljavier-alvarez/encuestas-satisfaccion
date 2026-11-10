@@ -19,6 +19,14 @@ class Preguntas extends Component
         ['index' => 'activo', 'label' => 'Estado'],
     ];
 
+    public function mount(?string $slug= null):void
+    {
+        if ($slug !== null){
+            $factor = Factor::where('slug', $slug)->firstOrFail();
+            $this->factorSeleccionado = $factor->id;
+        }
+    }
+
     // Columnas permitidas para ordenar
     protected function tableSortableColumns(): array
     {
@@ -45,19 +53,21 @@ class Preguntas extends Component
 
     public function seleccionarFactor(int $factorId): void
     {
-        Factor::findOrFail($factorId);
-        $this->factorSeleccionado = $factorId;
-        $this->search = '';
-        $this->clearFilters();
-        $this->resetPage();
+        $factor = Factor::findOrFail($factorId);
+
+        $this->redirectRoute(
+            'administracion.preguntas.factor',
+            ['slug' => $factor->slug],
+            navigate: true
+        );
     }
 
     public function regresarFactores(): void
     {
-        $this->factorSeleccionado = null;
-        $this->search  = '';
-        $this->clearFilters();
-        $this->resetPage();
+        $this->redirectRoute(
+            'administracion.preguntas',
+            navigate: true
+        );
     }
 
     

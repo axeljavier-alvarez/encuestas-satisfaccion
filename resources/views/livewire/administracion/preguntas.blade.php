@@ -74,9 +74,13 @@
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
             @foreach ($factores as $factor)
-                <button type="button" wire:key="factor-{{ $factor->id }}"
-                    wire:click="seleccionarFactor({{ $factor->id }})"
-                    class="group flex min-h-48 w-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-blue-500">
+                <a
+                    href="{{ route('administracion.preguntas.factor', ['slug' => $factor->slug]) }}"
+                    wire:navigate
+                    wire:key="factor-{{ $factor->id }}"
+                    class="group flex min-h-48 w-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+                >
+
 
                     <div class="flex w-full items-start justify-between gap-3">
 
@@ -117,14 +121,19 @@
 
                     </div>
 
-                </button>
+                </a>
             @endforeach
 
         </div>
     @else
         {{-- MODULO DE PREGUNTAS --}}
         <div>
-            <flux:button variant="ghost" icon="arrow-left" wire:click="regresarFactores">
+            <flux:button
+                :href="route('administracion.preguntas')"
+                wire:navigate
+                variant="ghost"
+                icon="arrow-left"
+            >
                 Volver a factores
             </flux:button>
         </div>

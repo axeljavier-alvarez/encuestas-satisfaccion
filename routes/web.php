@@ -49,6 +49,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('preguntas', Preguntas::class)
                 ->name('preguntas');
+
+            Route::get('preguntas/{slug}', Preguntas::class)
+                ->name('preguntas.factor');
             
         });
 

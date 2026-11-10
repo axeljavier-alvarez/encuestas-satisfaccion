@@ -315,71 +315,71 @@ trait DataTable
     }
 
     // Aplicar filtros a Eloquent
-    protected function applyTableFilters(Builder $query): Builder
-    {
-        $columns = $this->tableFilterableColumns();
+    // protected function applyTableFilters(Builder $query): Builder
+    // {
+    //     $columns = $this->tableFilterableColumns();
 
-        foreach ($this->filters as $filter) {
+    //     foreach ($this->filters as $filter) {
 
-            $field = $filter['field'] ?? '';
-            $value = trim((string) ($filter['value'] ?? ''));
+    //         $field = $filter['field'] ?? '';
+    //         $value = trim((string) ($filter['value'] ?? ''));
 
-            // Validar campo y valor
-            if (
-                !in_array($field, $columns, true) ||
-                $value === ''
-            ) {
-                continue;
-            }
+    //         // Validar campo y valor
+    //         if (
+    //             !in_array($field, $columns, true) ||
+    //             $value === ''
+    //         ) {
+    //             continue;
+    //         }
 
-            // ID: búsqueda exacta
-            if ($field === 'id') {
-                if (ctype_digit($value)) {
-                    $query->where('id', (int) $value);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
+    //         // ID: búsqueda exacta
+    //         if ($field === 'id') {
+    //             if (ctype_digit($value)) {
+    //                 $query->where('id', (int) $value);
+    //             } else {
+    //                 $query->whereRaw('1 = 0');
+    //             }
 
-                continue;
-            }
+    //             continue;
+    //         }
 
-            // Nombre, correo y rol: coincidencia parcial
-            if (in_array($field, ['name', 'email', 'rol'], true)) {
-                $query->where($field, 'like', "%{$value}%");
-                continue;
-            }
+    //         // Nombre, correo y rol: coincidencia parcial
+    //         if (in_array($field, ['name', 'email', 'rol'], true)) {
+    //             $query->where($field, 'like', "%{$value}%");
+    //             continue;
+    //         }
 
-            // Estado: Activo / Inactivo
-            if ($field === 'activo') {
-                $estado = mb_strtolower($value);
+    //         // Estado: Activo / Inactivo
+    //         if ($field === 'activo') {
+    //             $estado = mb_strtolower($value);
 
-                if (in_array($estado, ['activo', '1'], true)) {
-                    $query->where('activo', 1);
-                } elseif (in_array($estado, ['inactivo', '0'], true)) {
-                    $query->where('activo', 0);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
+    //             if (in_array($estado, ['activo', '1'], true)) {
+    //                 $query->where('activo', 1);
+    //             } elseif (in_array($estado, ['inactivo', '0'], true)) {
+    //                 $query->where('activo', 0);
+    //             } else {
+    //                 $query->whereRaw('1 = 0');
+    //             }
 
-                continue;
-            }
+    //             continue;
+    //         }
 
-            // Plantillas asignadas: cantidad exacta
-            if ($field === 'plantillas_count') {
-                if (ctype_digit($value)) {
-                    $cantidad = (int) $value;
+    //         // Plantillas asignadas: cantidad exacta
+    //         if ($field === 'plantillas_count') {
+    //             if (ctype_digit($value)) {
+    //                 $cantidad = (int) $value;
 
-                    $query->has('plantillas', '=', $cantidad);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
+    //                 $query->has('plantillas', '=', $cantidad);
+    //             } else {
+    //                 $query->whereRaw('1 = 0');
+    //             }
 
-                continue;
-            }
-        }
+    //             continue;
+    //         }
+    //     }
 
-        return $query;
-    }
+    //     return $query;
+    // }
 
     // Reiniciar paginación
     public function updatingSearch(): void

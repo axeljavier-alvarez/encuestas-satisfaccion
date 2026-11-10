@@ -11,6 +11,7 @@ class Factor extends Model
     protected $table = 'factores';
     protected $fillable = [
         'nombre',
+        'slug',
         'activo',
     ];
     protected $casts = [

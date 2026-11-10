@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Factor;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class FactoresSeeder extends Seeder
 {
@@ -23,12 +24,10 @@ class FactoresSeeder extends Seeder
         ];
 
         foreach ($factores as $nombre) {
-
             Factor::updateOrCreate(
+                ['nombre' => $nombre],
                 [
-                    'nombre' => $nombre,
-                ],
-                [
+                    'slug' => Str::slug($nombre),
                     'activo' => true,
                 ]
             );
