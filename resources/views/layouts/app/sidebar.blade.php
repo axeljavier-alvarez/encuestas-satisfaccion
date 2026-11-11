@@ -348,6 +348,13 @@
             }
 
         }
+
+        /* Espacio derecho para la columna Acciones */
+        .tabla-preguntas table th:last-child,
+        .tabla-preguntas table td:last-child {
+            padding-right: 24px !important;
+        }
+
     </style>
 </head>
 

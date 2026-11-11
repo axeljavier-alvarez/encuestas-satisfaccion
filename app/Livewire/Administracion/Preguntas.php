@@ -26,6 +26,7 @@ class Preguntas extends Component
         ['index' => 'tiposRespuesta.nombre', 'label' => 'Tipo de respuesta'],
         ['index' => 'obligatoria', 'label' => 'Obligatoria'],
         ['index' => 'activo', 'label' => 'Estado'],
+        ['index' => 'actions', 'label' => 'Acciones']
     ];
 
     public function mount(?string $slug = null): void
@@ -228,15 +229,8 @@ class Preguntas extends Component
                 'distinct',
                 Rule::exists('tipos_respuesta', 'id'),
             ],
-        ], [
-            'temaId.required' => 'Seleccione un tema.',
-            'temaId.exists' => 'El tema no pertenece al factor seleccionado.',
-            'texto.required' => 'Ingrese el texto de la pregunta.',
-            'tiposRespuestaSeleccionados.required' =>
-            'Seleccione al menos un tipo de respuesta.',
-            'tiposRespuestaSeleccionados.min' =>
-            'Seleccione al menos un tipo de respuesta.',
         ]);
+        
         DB::transaction(function() {
             $factor = Factor::findOrFail(
                 $this->factorSeleccionado

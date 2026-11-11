@@ -159,6 +159,7 @@
                 <flux:input wire:model="nombre" label="Nombre completo" placeholder="Ingrese el nombre completo"
                     icon="user" required />
 
+
                 {{-- CORREO --}}
                 <flux:input wire:model="email" label="Correo electrónico" type="email"
                     placeholder="correo@ejemplo.com" icon="envelope" required />

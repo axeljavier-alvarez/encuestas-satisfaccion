@@ -108,31 +108,6 @@ class Asignadores extends Component
         ];
     }
 
-    protected function messages(): array
-    {
-        return [
-            'nombre.required' =>
-                'Ingrese el nombre del asignador.',
-
-            'email.required' =>
-                'Ingrese el correo electrónico.',
-
-            'email.email' =>
-                'Ingrese un correo válido.',
-
-            'email.unique' =>
-                'Este correo ya está registrado.',
-
-            'password.required' =>
-                'Ingrese una contraseña.',
-
-            'password.min' =>
-                'La contraseña debe tener al menos 8 caracteres.',
-
-            'password.confirmed' =>
-                'Las contraseñas no coinciden.',
-        ];
-    }
 
     // Abrir modal
     public function crear(): void

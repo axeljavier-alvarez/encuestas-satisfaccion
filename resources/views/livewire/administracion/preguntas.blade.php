@@ -406,10 +406,13 @@
 
 
         {{-- panel principal --}}
-        <div
-            class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
-                empty-message="No se encontraron preguntas.">
+        <div class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <x-data-table
+                :headers="$headers"
+                :rows="$this->rows"
+                :advance-filter="true"
+                empty-message="No se encontraron preguntas."
+            >
 
                 @interact('id', $row)
                     {{ $row->id }}
@@ -489,6 +492,32 @@
                     <flux:badge :color="$row->activo ? 'green' : 'red'" size="sm">
                         {{ $row->activo ? 'Activo' : 'Inactivo' }}
                     </flux:badge>
+                @endinteract
+
+                  {{-- ACCIONES --}}
+                @interact('actions', $row)
+                    <flux:dropdown position="bottom" align="center">
+
+                        <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" aria-label="Acciones" />
+
+                        <flux:menu>
+
+                            <flux:menu.item disabled>
+                                Acciones de la pregunta
+                            </flux:menu.item>
+
+                            <flux:menu.separator />
+
+                            <flux:menu.item icon="pencil-square" wire:click="editar({{ $row->id }})">
+                                Editar pregunta
+                            </flux:menu.item>
+                            <flux:menu.separator />
+                            <flux:menu.item>
+                                Activar o Desactivar
+                            </flux:menu.item>
+                        </flux:menu>
+
+                    </flux:dropdown>
                 @endinteract
 
 

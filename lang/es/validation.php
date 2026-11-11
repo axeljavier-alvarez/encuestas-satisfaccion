@@ -169,6 +169,36 @@ return [
         'opciones.*.etiqueta' => [
             'required' => 'Escriba la etiqueta de la opción.',
         ],
+
+        // Validaciones de preguntas
+        'temaId' => [
+            'required' => 'Seleccione un tema.',
+            'exists' => 'El tema no pertenece al factor seleccionado.',
+        ],
+        'texto' => [
+            'required' => 'Ingrese el texto de la pregunta.',
+        ],
+        'tiposRespuestaSeleccionados' => [
+            'required' => 'Seleccione al menos un tipo de respuesta.',
+            'min' => 'Seleccione al menos un tipo de respuesta.',
+        ],
+
+        // Validaciones de asignadores
+        'nombre' => [
+            'required' => 'Ingrese el nombre del asignador.',
+        ],
+        'email' => [
+            'required' => 'Ingrese el correo electrónico.',
+            'email' => 'Ingrese un correo válido.',
+            'unique' => 'Este correo ya está registrado.',
+        ],
+        'password' => [
+            'required' => 'Ingrese una contraseña.',
+            'min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'confirmed' => 'Las contraseñas no coinciden.',
+        ],
+
+
     ],
 
     'attributes' => [
@@ -177,13 +207,24 @@ return [
         'texto' => 'texto de la pregunta',
         'orden' => 'orden',
         'tipo' => 'tipo de pregunta',
-        'codigoPlantilla' => 'codigo',
+        'codigoPlantilla' => 'código',
         'nombrePlantilla' => 'nombre',
         'descripcionPlantilla' => 'descripción',
         'escalaId' => 'escala',
         'opciones' => 'opciones de respuesta',
         'opciones.*.valor' => 'valor de la opción',
         'opciones.*.etiqueta' => 'etiqueta de la opción',
+
+        // Nuevos campos
+        'obligatoria' => 'pregunta obligatoria',
+        'tiposRespuestaSeleccionados' => 'tipos de respuesta',
+        'tiposRespuestaSeleccionados.*' => 'tipo de respuesta',
+
+        // Asignadores
+        'nombre' => 'nombre del asignador',
+        'email' => 'correo electrónico',
+        'password' => 'contraseña',
+        'password_confirmation' => 'confirmación de contraseña',
 
     ],
 
