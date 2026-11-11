@@ -18,6 +18,11 @@ class Preguntas extends Component
     public array $tiposRespuestaSeleccionados = [];
     public string $obligatoria = '';
     public string $texto = '';
+    // cambio de estado
+    public ?int $preguntaEstadoId = null;
+    public string $nombrePreguntaEstado = '';
+    public bool $nuevoEstadoPregunta = false;
+
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
         ['index' => 'codigo', 'label' => 'Código'],
@@ -271,6 +276,47 @@ class Preguntas extends Component
             tipo: 'success'
         );
     }
+
+    // confirmar cambio estado
+    public function confirmarCambioEstado(int $id): void
+    {
+        $pregunta = Pregunta::query()
+        ->findOrFail($id);
+
+        $this->preguntaEstadoId = $pregunta->id;
+        $this->nombrePreguntaEstado = $pregunta->texto;
+        $this->nuevoEstadoPregunta = !(bool) $pregunta->activo;
+
+        Flux::modal('confirmar-estado-pregunta')->show();
+    }
+
+    // cambiar estado
+    public function cambiarEstadoPregunta(): void
+    {
+        if($this->preguntaEstadoId === null){
+            return;
+        }
+        $pregunta = Pregunta::query()
+        ->findOrFail($this->preguntaEstadoId);
+        $nuevoEstado = !(bool) $pregunta->activo;
+        $pregunta->activo = $nuevoEstado;
+        $pregunta->save();
+        $mensaje = $nuevoEstado
+        ? 'Pregunta activada correctamente'
+        : 'Pregunta desactivada correctamente';
+        $this->reset([
+            'preguntaEstadoId',
+            'nombrePreguntaEstado',
+            'nuevoEstadoPregunta'
+        ]);
+        Flux::modal('confirmar-estado-pregunta')->close();
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: $mensaje,
+            tipo: 'success'
+        );
+    }
+
 
     public function render()
     {

@@ -35,7 +35,7 @@
                 </flux:heading>
 
                 <flux:subheading class="mt-2">
-                    {{ $mensaje }}
+                    {!! $mensaje !!}
                 </flux:subheading>
             </div>
 

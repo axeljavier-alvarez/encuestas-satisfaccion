@@ -54,11 +54,20 @@ class FortifyServiceProvider extends ServiceProvider
                     'email' => 'Las credenciales no coinciden con nuestros registros.',
                 ]);
             }
+            
 
             // Contraseña incorrecta
             if (! Hash::check($request->input('password'), $user->password)) {
                 throw ValidationException::withMessages([
                     'password' => 'Las credenciales no coinciden con nuestros registros',
+                ]);
+            }
+
+
+             // Verificar si el usuario está deshabilitado
+            if (! (bool) $user->activo) {
+                throw ValidationException::withMessages([
+                    'email' => 'Su cuenta se encuentra deshabilitada. Comuníquese con el administrador.',
                 ]);
             }
 

@@ -23,9 +23,15 @@ Route::get('/', function () {
         default => abort(403, 'Rol no autorizado.'),
     };
 
-})->name('home');
+})->middleware(['auth', 'usuario.activo'])->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+
+/*
+|--------------------------------------------------------------------------
+| Rutas protegidas
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'usuario.activo', 'verified'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -52,7 +58,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('preguntas/{slug}', Preguntas::class)
                 ->name('preguntas.factor');
-            
+
         });
 
     /*
@@ -72,4 +78,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 });
 
+
+/*
+|--------------------------------------------------------------------------
+| Configuración del usuario
+|--------------------------------------------------------------------------
+*/
 require __DIR__.'/settings.php';

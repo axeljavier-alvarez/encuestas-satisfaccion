@@ -402,7 +402,17 @@
                 </form>
             </div>
         </flux:modal>
-
+        
+        <x-confirmacion
+            nombre="confirmar-estado-pregunta"
+            :titulo="$nuevoEstadoPregunta ? 'Activar pregunta' : 'Desactivar pregunta'"
+            :mensaje="$nuevoEstadoPregunta
+                ? '<strong>¿Está seguro de que desea activar la pregunta?</strong><br>' . e($nombrePreguntaEstado)
+                : '<strong>¿Está seguro de que desea desactivar la pregunta?</strong><br>' . e($nombrePreguntaEstado)"
+            :texto-confirmar="$nuevoEstadoPregunta ? 'Sí, activar' : 'Sí, desactivar'"
+            :color="$nuevoEstadoPregunta ? 'primary' : 'danger'"
+            accion="cambiarEstadoPregunta"
+        />
 
 
         {{-- panel principal --}}
@@ -512,8 +522,10 @@
                                 Editar pregunta
                             </flux:menu.item>
                             <flux:menu.separator />
-                            <flux:menu.item>
-                                Activar o Desactivar
+                            <flux:menu.item :icon="$row->activo ? 'no-symbol' : 'check-circle'"
+                                :variant="$row->activo ? 'danger' : 'default'"
+                                wire:click="confirmarCambioEstado({{ $row->id }})">
+                                {{ $row->activo ? 'Desactivar pregunta' : 'Activar pregunta' }}
                             </flux:menu.item>
                         </flux:menu>
 

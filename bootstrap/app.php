@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EsAdministrador;
 use App\Http\Middleware\EsAsignador;
+use App\Http\Middleware\VerificarUsuarioActivo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EsAdministrador::class,
             'asignador' => EsAsignador::class,
+            'usuario.activo' => VerificarUsuarioActivo::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
