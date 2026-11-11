@@ -13,6 +13,7 @@ class Pregunta extends Model
     protected $fillable = [
         'codigo',
         'factor_id',
+        'tema_id',
         'texto',
         'es_nps',
         'activo',
@@ -68,16 +69,7 @@ class Pregunta extends Model
             ->withTimestamps();
     }
 
-    // Configuraciones concretas de la pregunta
-    /*
-    $pregunta = Pregunta::with([
-    'tiposRespuesta',
-    'configuracionesRespuesta.tipoRespuesta',
-    'configuracionesRespuesta.escala',
-    'configuracionesRespuesta.opcionesRespuesta',
-   ])->findOrFail(1);
-
-    */
+    
     public function configuracionesRespuesta()
     {
         return $this->hasMany(
@@ -103,4 +95,10 @@ class Pregunta extends Model
     {
         return $this->hasMany(Respuesta::class);
     }
+
+    public function tema()
+    {
+        return $this->belongsTo(Tema::class);
+    }
+
 }

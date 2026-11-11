@@ -178,12 +178,182 @@
                 margin-left: 0;
             }
         }
+
+
+
+        /* =========================================
+   ENCABEZADO DE PREGUNTAS
+========================================= */
+
+        .encabezado-preguntas {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            width: 100%;
+        }
+
+        /* Título */
+        .titulo-preguntas {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        /* Contenedor de las tres estadísticas */
+        .indicadores-preguntas {
+            display: grid;
+            grid-template-columns: repeat(3, 170px);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Tarjetas del mismo tamaño */
+        .tarjeta-estadistica {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            height: 76px;
+            min-width: 0;
+            padding: 12px;
+            border-radius: 12px;
+            box-sizing: border-box;
+        }
+
+        /* Íconos */
+        .icono-estadistica {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 10px;
+        }
+
+        /* Contenido */
+        .contenido-estadistica {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        /* Etiquetas */
+        .etiqueta-estadistica {
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+
+        /* Valores */
+        .valor-estadistica {
+            margin-top: 4px;
+            font-size: 24px;
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        /* =========================================
+        RESPONSIVE
+        ========================================= */
+
+        @media (max-width: 1100px) {
+
+            .encabezado-preguntas {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 20px;
+            }
+
+            .titulo-preguntas {
+                width: 100%;
+                flex: initial;
+            }
+
+            .indicadores-preguntas {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            .indicadores-preguntas {
+                gap: 8px;
+            }
+
+            .tarjeta-estadistica {
+                padding: 10px;
+                gap: 7px;
+                height: 70px;
+            }
+
+            .icono-estadistica {
+                width: 30px;
+                height: 30px;
+                min-width: 30px;
+            }
+
+            .etiqueta-estadistica {
+                font-size: 10px;
+                white-space: normal;
+            }
+
+            .valor-estadistica {
+                font-size: 20px;
+            }
+        }
+
+
+        /* Contenedor de la pregunta */
+        .contenido-pregunta {
+            width: 320px;
+            max-width: 320px;
+            min-width: 0;
+        }
+
+        /* Texto de la pregunta: máximo 3 líneas */
+        .texto-pregunta {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 10;
+            line-clamp: 10;
+
+            overflow: hidden;
+            overflow-wrap: anywhere;
+            white-space: normal;
+
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        /* Ajustar únicamente la columna Pregunta */
+        @media (min-width: 1024px) {
+
+            .tabla-asignadores table:has(.contenido-pregunta) {
+                table-layout: auto;
+            }
+
+            .tabla-asignadores table:has(.contenido-pregunta) th:nth-child(3),
+            .tabla-asignadores table:has(.contenido-pregunta) td:nth-child(3) {
+                width: 350px;
+                min-width: 350px;
+                max-width: 350px;
+            }
+
+        }
     </style>
 </head>
 
 <body class="min-h-screen bg-slate-100">
 
-       
+
     {{-- Menú lateral para computadora --}}
     <flux:sidebar sticky collapsible="mobile" class="sidebar-institucional border-e">
 

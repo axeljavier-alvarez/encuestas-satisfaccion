@@ -1,10 +1,10 @@
 <div class="mx-auto w-full max-w-7xl space-y-6 px-2 py-6 sm:px-4">
 
     {{-- ENCABEZADO --}}
-    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <div class="encabezado-preguntas">
 
         {{-- TÍTULO E ICONO --}}
-        <div class="flex min-w-0 items-center gap-4 lg:flex-1">
+        <div class="titulo-preguntas">
 
             <div class="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-500/10">
                 <flux:icon.question-mark-circle class="size-9 text-blue-700 dark:text-blue-400" />
@@ -23,65 +23,62 @@
         </div>
 
         {{-- INDICADORES --}}
-        <div class="grid w-full grid-cols-3 gap-2 sm:gap-3 lg:w-auto lg:grid-cols-3 lg:shrink-0">
+        <div class="indicadores-preguntas">
 
-            {{-- TOTAL DE PREGUNTAS --}}
+            {{-- TOTAL --}}
             <div
-                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
-                <div
-                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/10 sm:flex">
+                <div class="icono-estadistica bg-blue-50 dark:bg-blue-500/10">
                     <flux:icon.list-bullet class="size-5 text-blue-600 dark:text-blue-400" />
                 </div>
 
-                <div class="min-w-0">
-                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                <div class="contenido-estadistica">
+                    <p class="etiqueta-estadistica text-zinc-500 dark:text-zinc-400">
                         Total preguntas
                     </p>
 
-                    <p class="mt-1 text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">
+                    <p class="valor-estadistica text-zinc-900 dark:text-white">
                         {{ $estadisticas->total ?? 0 }}
                     </p>
                 </div>
 
             </div>
 
-            {{-- PREGUNTAS ACTIVAS --}}
+            {{-- ACTIVAS --}}
             <div
-                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
-                <div
-                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/10 sm:flex">
+                <div class="icono-estadistica bg-green-50 dark:bg-green-500/10">
                     <flux:icon.check-circle class="size-5 text-green-600 dark:text-green-400" />
                 </div>
 
-                <div class="min-w-0">
-                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                <div class="contenido-estadistica">
+                    <p class="etiqueta-estadistica text-zinc-500 dark:text-zinc-400">
                         Activas
                     </p>
 
-                    <p class="mt-1 text-xl font-bold text-green-600 dark:text-green-400 sm:text-2xl">
+                    <p class="valor-estadistica text-green-600 dark:text-green-400">
                         {{ $estadisticas->activas ?? 0 }}
                     </p>
                 </div>
 
             </div>
 
-            {{-- PREGUNTAS INACTIVAS --}}
+            {{-- INACTIVAS --}}
             <div
-                class="flex min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:w-32">
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
-                <div
-                    class="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/10 sm:flex">
+                <div class="icono-estadistica bg-red-50 dark:bg-red-500/10">
                     <flux:icon.x-circle class="size-5 text-red-600 dark:text-red-400" />
                 </div>
 
-                <div class="min-w-0">
-                    <p class="text-[11px] font-medium leading-tight text-zinc-500 dark:text-zinc-400 sm:text-xs">
+                <div class="contenido-estadistica">
+                    <p class="etiqueta-estadistica text-zinc-500 dark:text-zinc-400">
                         Inactivas
                     </p>
 
-                    <p class="mt-1 text-xl font-bold text-red-600 dark:text-red-400 sm:text-2xl">
+                    <p class="valor-estadistica text-red-600 dark:text-red-400">
                         {{ $estadisticas->inactivas ?? 0 }}
                     </p>
                 </div>
@@ -91,6 +88,8 @@
         </div>
 
     </div>
+
+
 
     {{-- arreglo de iconos --}}
     @php
@@ -242,6 +241,10 @@
                         </flux:button>
                     </flux:modal.trigger>
 
+                    <flux:button variant="primary" size="sm" icon="plus" wire:click="abrirNuevaPregunta">
+                        Nueva pregunta
+                    </flux:button>
+
                 </div>
 
             </div>
@@ -310,8 +313,96 @@
                 </div>
 
             </div>
-
         </flux:modal>
+
+
+        {{-- MODAL PARA CREAR PREGUNTAS --}}
+        <flux:modal name="nueva-pregunta" class="w-full max-w-lg" @close="cerrarNuevaPregunta">
+            <div class="space-y-6">
+
+                {{-- ENCABEZADO --}}
+                <div>
+                    <flux:heading size="xl">
+                        Nueva pregunta
+                    </flux:heading>
+
+                    <flux:text class="mt-2">
+                        Complete la información para registrar
+                        una nueva pregunta.
+                    </flux:text>
+                </div>
+
+                {{-- FORMULARIO --}}
+                <form wire:submit="guardar" class="space-y-5">
+
+                    {{-- FACTOR --}}
+                    <flux:input label="Factor" :value="$factorActual->nombre" icon="squares-2x2" readonly />
+
+                    {{-- TEMA --}}
+                    <flux:select wire:model="temaId" label="Tema">
+                        <flux:select.option value="">
+                            Seleccione un tema
+                        </flux:select.option>
+
+                        @foreach ($temas as $tema)
+                            <flux:select.option :value="$tema->id" wire:key="tema-nueva-{{ $tema->id }}">
+                                {{ $tema->nombre }}
+                            </flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    {{-- OBLIGATORIA --}}
+                    <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                        <flux:radio.group wire:model="obligatoria" label="¿La pregunta es obligatoria?">
+                            <div class="mt-2 flex items-center gap-5">
+                                <flux:radio value="1" label="Sí" />
+                                <flux:radio value="0" label="No" />
+                            </div>
+                        </flux:radio.group>
+                    </div>
+
+                    {{-- TEXTO --}}
+                    <flux:textarea wire:model="texto" label="Texto de la pregunta"
+                        placeholder="Escriba la pregunta aquí..." rows="3" resize="vertical" />
+
+
+                    {{-- TIPOS DE RESPUESTA --}}
+                    <flux:field>
+                        <flux:label>
+                            Tipos de respuesta
+                        </flux:label>
+
+                        <flux:description>
+                            Seleccione uno o varios tipos de respuesta.
+                        </flux:description>
+
+                        <div class="mt-3 space-y-3">
+                            @foreach ($tiposRespuesta as $tipo)
+                                <flux:checkbox wire:model="tiposRespuestaSeleccionados" :value="$tipo->id"
+                                    :label="$tipo->nombre" />
+                            @endforeach
+                        </div>
+
+                    </flux:field>
+
+                    {{-- BOTONES --}}
+                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">
+
+                        <flux:button type="button" variant="ghost" wire:click="cerrarNuevaPregunta">
+                            Cancelar
+                        </flux:button>
+
+                        <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
+                            wire:target="guardar">
+                            Guardar pregunta
+                        </flux:button>
+
+                    </div>
+
+                </form>
+            </div>
+        </flux:modal>
+
 
 
         {{-- panel principal --}}
@@ -330,23 +421,61 @@
                     </flux:badge>
                 @endinteract
 
+
                 @interact('texto', $row)
-                    <div class="flex items-start gap-3">
+                    <div class="contenido-pregunta">
 
-                        <div class="min-w-0 max-w-xl">
+                        {{-- TEXTO DE LA PREGUNTA --}}
+                        <p class="texto-pregunta" title="{{ $row->texto }}">
+                            {{ $row->texto }}
+                        </p>
 
-                            <p class="whitespace-normal font-medium text-zinc-900 dark:text-zinc-100">
-                                {{ $row->texto }}
-                            </p>
+                        {{-- ETIQUETAS --}}
+                        @if ($row->es_nps || $row->es_predeterminada)
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
 
-                            @if ($row->es_nps)
-                                <flux:badge color="blue" size="sm" class="mt-2">
-                                    NPS
-                                </flux:badge>
-                            @endif
+                                @if ($row->es_nps)
+                                    <flux:badge color="purple" size="sm">
+                                        NPS
+                                    </flux:badge>
+                                @endif
 
-                        </div>
+                                @if ($row->es_predeterminada)
+                                    <flux:badge color="blue" size="sm">
+                                        Es predeterminada
+                                    </flux:badge>
+                                @endif
 
+                            </div>
+                        @endif
+
+                    </div>
+                @endinteract
+
+
+                @interact('tema.nombre', $row)
+                    @if ($row->tema)
+                        <flux:badge color="blue" size="sm">
+                            {{ $row->tema->nombre }}
+                        </flux:badge>
+                    @else
+                        <flux:badge color="zinc" size="sm">
+                            Sin tema
+                        </flux:badge>
+                    @endif
+                @endinteract
+
+                @interact('tiposRespuesta.nombre', $row)
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        @forelse ($row->tiposRespuesta as $tipo)
+                            <flux:badge color="zinc" size="sm">
+                                {{ $tipo->nombre }}
+                            </flux:badge>
+                        @empty
+                            <flux:badge color="zinc" size="sm">
+                                Sin tipo
+                            </flux:badge>
+                        @endforelse
                     </div>
                 @endinteract
 

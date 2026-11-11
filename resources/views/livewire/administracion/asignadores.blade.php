@@ -159,32 +159,15 @@
                 <flux:input wire:model="nombre" label="Nombre completo" placeholder="Ingrese el nombre completo"
                     icon="user" required />
 
-                @error('nombre')
-                    <p class="text-xs font-semibold text-red-600">
-                        {{ $message }}
-                    </p>
-                @enderror
-
                 {{-- CORREO --}}
                 <flux:input wire:model="email" label="Correo electrónico" type="email"
                     placeholder="correo@ejemplo.com" icon="envelope" required />
 
-                @error('email')
-                    <p class="text-xs font-semibold text-red-600">
-                        {{ $message }}
-                    </p>
-                @enderror
 
                 {{-- CONTRASEÑA --}}
                 <flux:input wire:model="password" type="password"
                     :label="$asignadorId ? 'Nueva contraseña' : 'Contraseña'" placeholder="Mínimo 8 caracteres"
                     viewable />
-
-                @error('password')
-                    <p class="text-xs font-semibold text-red-600">
-                        {{ $message }}
-                    </p>
-                @enderror
 
                 {{-- CONFIRMAR CONTRASEÑA --}}
                 <flux:input wire:model="password_confirmation" type="password" label="Confirmar contraseña"

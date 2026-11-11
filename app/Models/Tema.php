@@ -25,4 +25,9 @@ class Tema extends Model
         return $this->belongsTo(Factor::class, 'factor_id');
     }
 
+    public function preguntas()
+    {
+        return $this->hasMany(Pregunta::class);
+    }
+
 }
