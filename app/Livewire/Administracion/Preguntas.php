@@ -106,6 +106,12 @@ class Preguntas extends Component
             ],
         ]);
 
+        // Priorizar preguntas activas cuando se ordena por ID
+        if ($this->sortBy === 'id') {
+            $query->reorder('activo', 'desc')
+                ->orderBy('id', $this->sortDirection);
+        }
+
         return $query->paginate($this->getPerPage());
     }
 
