@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Administracion;
 
-use App\Models\{Factor, Pregunta, Tema, TipoRespuesta};
+use App\Models\{Factor, Pregunta, Tema, TipoRespuesta, Escala, PreguntaTipoRespuesta};
 use App\Traits\{DataTable, Interact};
 use Livewire\Component;
 use Livewire\Attributes\Computed;
@@ -26,6 +26,12 @@ class Preguntas extends Component
     public ?int $preguntaId = null;
     // es_predeterminada
     public bool $esPredeterminada = false;
+    // configuracion de respuestas
+    public ?int $preguntaConfiguracionId = null;
+    public ?int $escalaSeleccionada = null;
+    public bool $tieneEscala = false;
+    public bool $tieneOtrosTipos = false;
+    public string $textoPreguntaConfiguracion = '';
 
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
@@ -125,7 +131,7 @@ class Preguntas extends Component
         return $query->paginate($this->getPerPage());
     }
 
-    
+
     public function resetData(): void
     {
         $this->reset([
@@ -374,7 +380,7 @@ class Preguntas extends Component
         }
         $pregunta = Pregunta::query()
             ->findOrFail($this->preguntaEstadoId);
-            
+
         if ($pregunta->es_predeterminada) {
             return;
         }
@@ -394,6 +400,91 @@ class Preguntas extends Component
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: $mensaje,
+            tipo: 'success'
+        );
+    }
+
+    // configurar respuestas
+    public function configurarRespuestas(int $id): void
+    {
+        if ($this->factorSeleccionado === null) {
+            return;
+        }
+        $this->reset([
+            'preguntaConfiguracionId',
+            'escalaSeleccionada',
+            'tieneEscala',
+            'tieneOtrosTipos',
+            'textoPreguntaConfiguracion'
+        ]);
+        $this->resetValidation();
+        $pregunta = Pregunta::query()
+            ->with('configuracionesRespuesta.tipoRespuesta')
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($id);
+        $configuraciones = $pregunta->configuracionesRespuesta;
+        $configuracionEscala = $configuraciones->first(
+            fn($config) =>
+            $config->tipoRespuesta?->nombre === 'Escala de 0 a 10'
+        );
+        $this->preguntaConfiguracionId = $pregunta->id;
+        $this->textoPreguntaConfiguracion = $pregunta->texto;
+        $this->tieneEscala = $configuracionEscala !== null;
+        $this->tieneOtrosTipos = $configuraciones->contains(
+            fn($config) =>
+            ! in_array(
+                $config->tipoRespuesta?->nombre,
+                ['Escala de 0 a 10', 'Texto abierto'],
+                true
+            )
+        );
+        if ($configuracionEscala?->escala_id !== null) {
+            $this->escalaSeleccionada = (int) $configuracionEscala->escala_id;
+        }
+        // dd([
+        //     'pregunta_id' => $pregunta->id,
+        //     'configuraciones' => $configuraciones->map(fn($config) => [
+        //         'tipo' => $config->tipoRespuesta?->nombre,
+        //         'escala_id' => $config->escala_id,
+        //     ])->all(),
+        //     'escala_seleccionada' => $this->escalaSeleccionada,
+        // ]);
+
+        Flux::modal('configurar-respuestas')->show();
+    }
+
+    public function guardarConfiguracionRespuestas(): void
+    {
+        if (
+            $this->preguntaConfiguracionId === null ||
+            $this->factorSeleccionado === null ||
+            ! $this->tieneEscala
+        ) {
+            return;
+        }
+        $this->validate([
+            'escalaSeleccionada' => [
+                'required',
+                'integer',
+                Rule::exists('escalas', 'id'),
+            ],
+        ]);
+        $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($this->preguntaConfiguracionId);
+        $tipoEscala = TipoRespuesta::query()
+            ->where('nombre', 'Escala de 0 a 10')
+            ->firstOrFail();
+        $configuracion = $pregunta->configuracionesRespuesta()
+            ->where('tipo_respuesta_id', $tipoEscala->id)
+            ->firstOrFail();
+        $configuracion->update([
+            'escala_id' => $this->escalaSeleccionada
+        ]);
+        Flux::modal('configurar-respuestas')->close();
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: 'Escala configurada correctamente',
             tipo: 'success'
         );
     }
@@ -424,13 +515,19 @@ class Preguntas extends Component
             ->orderBy('id')
             ->get();
 
+        $escalas = Escala::query()
+            ->whereIn('id', [1, 2])
+            ->orderByRaw('CASE WHEN id = 2 THEN 0 ELSE 1 END')
+            ->get();
+
         return view('livewire.administracion.preguntas', [
             'factores' => $factores,
             'factorActual' => $factorActual,
             'temas' => $temas,
             'estadisticas' => $estadisticas,
             'totalPreguntas' => $factores->sum('preguntas_count'),
-            'tiposRespuesta' => $tiposRespuesta
+            'tiposRespuesta' => $tiposRespuesta,
+            'escalas' => $escalas
         ]);
     }
 }

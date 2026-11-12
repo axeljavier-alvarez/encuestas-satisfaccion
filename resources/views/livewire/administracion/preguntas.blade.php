@@ -354,7 +354,8 @@
 
                     {{-- OBLIGATORIA --}}
                     <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:radio.group wire:model="obligatoria" label="¿La pregunta es obligatoria?" :disabled="$esPredeterminada">
+                        <flux:radio.group wire:model="obligatoria" label="¿La pregunta es obligatoria?"
+                            :disabled="$esPredeterminada">
                             <div class="mt-2 flex items-center gap-5">
                                 <flux:radio value="1" label="Sí" />
                                 <flux:radio value="0" label="No" />
@@ -385,8 +386,7 @@
                                     class="flex cursor-pointer items-center gap-3">
 
                                     <input type="checkbox" wire:model="tiposRespuestaSeleccionados"
-                                        value="{{ $tipo->id }}"
-                                        @disabled($esPredeterminada)
+                                        value="{{ $tipo->id }}" @disabled($esPredeterminada)
                                         class="size-4 rounded border-zinc-300 text-blue-600
                            focus:ring-blue-500 dark:border-zinc-600" />
 
@@ -418,6 +418,133 @@
                 </form>
             </div>
         </flux:modal>
+
+
+        {{-- MODAL CONFIGURAR RESPUESTAS --}}
+        <flux:modal name="configurar-respuestas" class="w-full max-w-xl">
+
+            <div class="space-y-6">
+
+                {{-- ENCABEZADO --}}
+                <div>
+                    <flux:heading size="xl">
+                        Configurar respuestas
+                    </flux:heading>
+
+                    <flux:text class="mt-2">
+                        Configure las opciones de respuesta de la pregunta.
+                    </flux:text>
+                </div>
+
+                {{-- PREGUNTA --}}
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:text class="text-xs font-medium">
+                        Pregunta seleccionada
+                    </flux:text>
+
+                    <p class="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        {{ $textoPreguntaConfiguracion }}
+                    </p>
+                </div>
+
+                @if ($tieneEscala)
+
+                    {{-- CONFIGURACIÓN DE ESCALA --}}
+                    <form wire:submit="guardarConfiguracionRespuestas" class="space-y-5">
+                        <div>
+                            <flux:heading size="lg">
+                                Escala de respuesta
+                            </flux:heading>
+
+                            <flux:text class="mt-1 text-sm">
+                                Seleccione la escala que utilizará esta pregunta.
+                            </flux:text>
+                        </div>
+                        <flux:radio.group wire:model.live="escalaSeleccionada" label="Seleccione una escala"
+                            variant="cards" class="flex-col">
+                            @foreach ($escalas as $escala)
+                                <flux:radio :value="$escala->id" :label="$escala->nombre"
+                                    :description="$escala->permite_no_sabe || $escala->permite_no_aplica
+                                                                    ? 'Incluye las opciones No sabe y No aplica.'
+                                                                    : 'Únicamente valores numéricos del 0 al 10.'" />
+                            @endforeach
+                        </flux:radio.group>
+
+                        <flux:error name="escalaSeleccionada" />
+
+                        @if ($escalaSeleccionada)
+                            <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                                <flux:heading size="sm">
+                                    Escala seleccionada
+                                </flux:heading>
+
+                                @foreach ($escalas as $escala)
+                                    @if ($escala->id == $escalaSeleccionada)
+                                        <flux:text class="mt-2 text-sm">
+                                            {{ $escala->nombre }}
+                                        </flux:text>
+
+                                        <flux:text class="mt-1 text-xs">
+                                            Valores del {{ $escala->minimo }} al {{ $escala->maximo }}
+                                        </flux:text>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if ($tieneOtrosTipos)
+                            <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                                <flux:text class="text-sm">
+                                    La configuración de selección única y múltiple
+                                    se encuentra en desarrollo.
+                                </flux:text>
+                            </div>
+                        @endif
+
+                        <div class="flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-700">
+                            <flux:modal.close>
+                                <flux:button variant="ghost">
+                                    Cancelar
+                                </flux:button>
+                            </flux:modal.close>
+
+                            <flux:button type="submit" variant="primary" icon="check"
+                                wire:loading.attr="disabled" wire:target="guardarConfiguracionRespuestas">
+                                Guardar configuración
+                            </flux:button>
+                        </div>
+
+                    </form>
+                @else
+                    {{-- TIPOS DE RESPUESTA AÚN NO IMPLEMENTADOS --}}
+                    <div class="space-y-3 py-4 text-center">
+                        <flux:icon.wrench class="mx-auto size-10 text-zinc-400" />
+
+                        <flux:heading size="lg">
+                            Configuración en desarrollo
+                        </flux:heading>
+
+                        <flux:text>
+                            La configuración de opciones para selección única
+                            y selección múltiple estará disponible próximamente.
+                        </flux:text>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <flux:modal.close>
+                            <flux:button variant="primary">
+                                Entendido
+                            </flux:button>
+                        </flux:modal.close>
+                    </div>
+
+                @endif
+
+            </div>
+
+        </flux:modal>
+
+
 
         <x-confirmacion nombre="confirmar-estado-pregunta" :titulo="$nuevoEstadoPregunta ? 'Activar pregunta' : 'Desactivar pregunta'" :mensaje="$nuevoEstadoPregunta
             ? '<strong>¿Está seguro de que desea activar la pregunta?</strong><br>' . e($nombrePreguntaEstado)
@@ -531,12 +658,11 @@
                             </flux:menu.item>
 
                             {{-- configurar respuestas --}}
-                            @if ($row->tiposRespuesta->contains(fn ($tipo) => $tipo->nombre !== 'Texto abierto'))
-                             <flux:menu.item
-                                icon="adjustments-horizontal"
-                                wire:click="configurarRespuestas({{ $row->id }})">
-                                Configurar respuestas
-                            </flux:menu.item>
+                            @if ($row->tiposRespuesta->contains(fn($tipo) => $tipo->nombre !== 'Texto abierto'))
+                                <flux:menu.item icon="adjustments-horizontal"
+                                    wire:click="configurarRespuestas({{ $row->id }})">
+                                    Configurar respuestas
+                                </flux:menu.item>
                             @endif
                             <flux:menu.separator />
                             @if (!$row->es_predeterminada)
