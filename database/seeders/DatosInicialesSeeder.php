@@ -1426,8 +1426,8 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                 $escalaId = null;
                 if ($nombreTipo === 'Escala de 0 a 10') {
                     $nombreEscala = $fila['codigo'] === 'REC-01'
-                        ? 'Escala NPS de 0 a 10'
-                        : 'Escala general de 0 a 10';
+                        ? 'Escala de 0 a 10'
+                        : 'Escala de 0 a 10 con opciones adicionales';
                     $escalaId = DB::table('escalas')->where('nombre', $nombreEscala)->value('id');
                     if ($escalaId === null) {
                         throw new RuntimeException("No existe la escala: {$nombreEscala}.");

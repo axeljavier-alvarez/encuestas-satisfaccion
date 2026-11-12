@@ -10,7 +10,7 @@ class EscalasSeeder extends Seeder
     public function run(): void
     {
         Escala::updateOrCreate(
-            ['nombre' => 'Escala NPS de 0 a 10'],
+            ['nombre' => 'Escala de 0 a 10'],
             [
                 'minimo' => 0,
                 'maximo' => 10,
@@ -20,7 +20,7 @@ class EscalasSeeder extends Seeder
         );
 
         Escala::updateOrCreate(
-            ['nombre' => 'Escala general de 0 a 10'],
+            ['nombre' => 'Escala de 0 a 10 con opciones adicionales'],
             [
                 'minimo' => 0,
                 'maximo' => 10,

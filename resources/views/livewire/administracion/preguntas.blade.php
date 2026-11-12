@@ -354,7 +354,7 @@
 
                     {{-- OBLIGATORIA --}}
                     <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-                        <flux:radio.group wire:model="obligatoria" label="¿La pregunta es obligatoria?">
+                        <flux:radio.group wire:model="obligatoria" label="¿La pregunta es obligatoria?" :disabled="$esPredeterminada">
                             <div class="mt-2 flex items-center gap-5">
                                 <flux:radio value="1" label="Sí" />
                                 <flux:radio value="0" label="No" />
@@ -368,24 +368,39 @@
 
 
                     {{-- TIPOS DE RESPUESTA --}}
-                    <flux:field>
-                        <flux:label>
-                            Tipos de respuesta
-                        </flux:label>
 
-                        <flux:description>
+                    {{-- TIPOS DE RESPUESTA --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            Tipos de respuesta
+                        </label>
+
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                             Seleccione uno o varios tipos de respuesta.
-                        </flux:description>
+                        </p>
 
                         <div class="mt-3 space-y-3">
                             @foreach ($tiposRespuesta as $tipo)
-                                <flux:checkbox wire:model="tiposRespuestaSeleccionados" :value="$tipo->id"
-                                    :label="$tipo->nombre" />
+                                <label wire:key="tipo-respuesta-{{ $tipo->id }}"
+                                    class="flex cursor-pointer items-center gap-3">
+
+                                    <input type="checkbox" wire:model="tiposRespuestaSeleccionados"
+                                        value="{{ $tipo->id }}"
+                                        @disabled($esPredeterminada)
+                                        class="size-4 rounded border-zinc-300 text-blue-600
+                           focus:ring-blue-500 dark:border-zinc-600" />
+
+                                    <span class="text-sm text-zinc-900 dark:text-zinc-100">
+                                        {{ $tipo->nombre }}
+                                    </span>
+
+                                </label>
                             @endforeach
                         </div>
 
-                    </flux:field>
-
+                        {{-- MENSAJE DE ERROR FLUX --}}
+                        <flux:error name="tiposRespuestaSeleccionados" class="mt-3" />
+                    </div>
                     {{-- BOTONES --}}
                     <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">
 
@@ -403,27 +418,19 @@
                 </form>
             </div>
         </flux:modal>
-        
-        <x-confirmacion
-            nombre="confirmar-estado-pregunta"
-            :titulo="$nuevoEstadoPregunta ? 'Activar pregunta' : 'Desactivar pregunta'"
-            :mensaje="$nuevoEstadoPregunta
-                ? '<strong>¿Está seguro de que desea activar la pregunta?</strong><br>' . e($nombrePreguntaEstado)
-                : '<strong>¿Está seguro de que desea desactivar la pregunta?</strong><br>' . e($nombrePreguntaEstado)"
+
+        <x-confirmacion nombre="confirmar-estado-pregunta" :titulo="$nuevoEstadoPregunta ? 'Activar pregunta' : 'Desactivar pregunta'" :mensaje="$nuevoEstadoPregunta
+            ? '<strong>¿Está seguro de que desea activar la pregunta?</strong><br>' . e($nombrePreguntaEstado)
+            : '<strong>¿Está seguro de que desea desactivar la pregunta?</strong><br>' . e($nombrePreguntaEstado)"
             :texto-confirmar="$nuevoEstadoPregunta ? 'Sí, activar' : 'Sí, desactivar'"
-            :color="$nuevoEstadoPregunta ? 'primary' : 'danger'"
-            accion="cambiarEstadoPregunta"
-        />
+            :color="$nuevoEstadoPregunta ? 'primary' : 'danger'" accion="cambiarEstadoPregunta" />
 
 
         {{-- panel principal --}}
-        <div class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <x-data-table
-                :headers="$headers"
-                :rows="$this->rows"
-                :advance-filter="true"
-                empty-message="No se encontraron preguntas."
-            >
+        <div
+            class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
+                empty-message="No se encontraron preguntas.">
 
                 @interact('id', $row)
                     {{ $row->id }}
@@ -505,7 +512,7 @@
                     </flux:badge>
                 @endinteract
 
-                  {{-- ACCIONES --}}
+                {{-- ACCIONES --}}
                 @interact('actions', $row)
                     <flux:dropdown position="bottom" align="center">
 
@@ -522,12 +529,23 @@
                             <flux:menu.item icon="pencil-square" wire:click="editar({{ $row->id }})">
                                 Editar pregunta
                             </flux:menu.item>
-                            <flux:menu.separator />
-                            <flux:menu.item :icon="$row->activo ? 'no-symbol' : 'check-circle'"
-                                :variant="$row->activo ? 'danger' : 'default'"
-                                wire:click="confirmarCambioEstado({{ $row->id }})">
-                                {{ $row->activo ? 'Desactivar pregunta' : 'Activar pregunta' }}
+
+                            {{-- configurar respuestas --}}
+                            @if ($row->tiposRespuesta->contains(fn ($tipo) => $tipo->nombre !== 'Texto abierto'))
+                             <flux:menu.item
+                                icon="adjustments-horizontal"
+                                wire:click="configurarRespuestas({{ $row->id }})">
+                                Configurar respuestas
                             </flux:menu.item>
+                            @endif
+                            <flux:menu.separator />
+                            @if (!$row->es_predeterminada)
+                                <flux:menu.item :icon="$row->activo ? 'no-symbol' : 'check-circle'"
+                                    :variant="$row->activo ? 'danger' : 'default'"
+                                    wire:click="confirmarCambioEstado({{ $row->id }})">
+                                    {{ $row->activo ? 'Desactivar pregunta' : 'Activar pregunta' }}
+                                </flux:menu.item>
+                            @endif
                         </flux:menu>
 
                     </flux:dropdown>
