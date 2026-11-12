@@ -397,9 +397,6 @@
                                 </label>
                             @endforeach
                         </div>
-
-                        {{-- MENSAJE DE ERROR FLUX --}}
-                        <flux:error name="tiposRespuestaSeleccionados" class="mt-3" />
                     </div>
                     {{-- BOTONES --}}
                     <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">
@@ -472,14 +469,8 @@
                                 @endforeach
                             </flux:select>
 
-                            <flux:error name="escalaSeleccionada" />
-
                         </div>
 
-                        {{-- VISTA PREVIA --}}
-                        @php
-                            $escalaActual = $escalas->firstWhere('id', (int) $escalaSeleccionada);
-                        @endphp
 
                         @if ($escalaSeleccionada && $escalaActual)
 
@@ -586,6 +577,8 @@
             :color="$nuevoEstadoPregunta ? 'primary' : 'danger'" accion="cambiarEstadoPregunta" />
 
 
+        {{-- MENSAJE DE CONFIRMACIÓN --}}
+        <x-alerta />
         {{-- panel principal --}}
         <div
             class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -632,7 +625,6 @@
 
                     </div>
                 @endinteract
-
 
                 @interact('tema.nombre', $row)
                     @if ($row->tema)

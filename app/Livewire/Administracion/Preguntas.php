@@ -404,12 +404,22 @@ class Preguntas extends Component
         );
     }
 
-    // configurar respuestas
+
+    /**
+     * Abre el modal para configurar las respuestas de una pregunta.
+     *
+     * Identifica los tipos de respuesta asociados a la pregunta,
+     * recupera la escala previamente configurada (si existe)
+     * y determina si hay otros tipos pendientes de configurar.
+     */
     public function configurarRespuestas(int $id): void
     {
+        // Verificar que exista un factor seleccionado
         if ($this->factorSeleccionado === null) {
             return;
         }
+
+        // Limpiar los datos de configuraciones anteriores
         $this->reset([
             'preguntaConfiguracionId',
             'escalaSeleccionada',
@@ -417,19 +427,37 @@ class Preguntas extends Component
             'tieneOtrosTipos',
             'textoPreguntaConfiguracion'
         ]);
+
+        // Limpiar los errores de validación anteriores
         $this->resetValidation();
+
+        // Buscar la pregunta y cargar sus configuraciones
+        // junto con los tipos de respuesta asociados
         $pregunta = Pregunta::query()
             ->with('configuracionesRespuesta.tipoRespuesta')
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($id);
+
+        // Obtener las configuraciones de respuesta de la pregunta
         $configuraciones = $pregunta->configuracionesRespuesta;
+
+        // Buscar si la pregunta tiene el tipo de respuesta
+        // "Escala de 0 a 10"
         $configuracionEscala = $configuraciones->first(
             fn($config) =>
             $config->tipoRespuesta?->nombre === 'Escala de 0 a 10'
         );
+
+        // Guardar el ID y el texto de la pregunta seleccionada
         $this->preguntaConfiguracionId = $pregunta->id;
         $this->textoPreguntaConfiguracion = $pregunta->texto;
+
+        // Indicar si la pregunta utiliza una escala numérica
         $this->tieneEscala = $configuracionEscala !== null;
+
+        // Verificar si existen otros tipos de respuesta
+        // diferentes de "Escala de 0 a 10" y "Texto abierto"
+        // Por ejemplo: Selección única o Selección múltiple
         $this->tieneOtrosTipos = $configuraciones->contains(
             fn($config) =>
             ! in_array(
@@ -438,9 +466,15 @@ class Preguntas extends Component
                 true
             )
         );
+
+        // Si la pregunta ya tiene una escala configurada,
+        // recuperar su ID para mostrarla seleccionada en el formulario
         if ($configuracionEscala?->escala_id !== null) {
             $this->escalaSeleccionada = (int) $configuracionEscala->escala_id;
         }
+
+        // Depuración: permite verificar los tipos de respuesta
+        // y la escala recuperada desde la base de datos
         // dd([
         //     'pregunta_id' => $pregunta->id,
         //     'configuraciones' => $configuraciones->map(fn($config) => [
@@ -450,11 +484,21 @@ class Preguntas extends Component
         //     'escala_seleccionada' => $this->escalaSeleccionada,
         // ]);
 
+        // Abrir el modal de configuración de respuestas
         Flux::modal('configurar-respuestas')->show();
     }
 
+    /**
+     * Guarda la escala seleccionada para una pregunta.
+     *
+     * Valida que la escala exista en la base de datos
+     * y actualiza el campo escala_id de la configuración
+     * correspondiente al tipo de respuesta "Escala de 0 a 10".
+     */
     public function guardarConfiguracionRespuestas(): void
     {
+        // Verificar que exista una pregunta y un factor seleccionado,
+        // y que la pregunta tenga el tipo de respuesta escala
         if (
             $this->preguntaConfiguracionId === null ||
             $this->factorSeleccionado === null ||
@@ -462,6 +506,9 @@ class Preguntas extends Component
         ) {
             return;
         }
+
+        // Validar que se haya seleccionado una escala válida
+        // y que exista en la tabla escalas
         $this->validate([
             'escalaSeleccionada' => [
                 'required',
@@ -469,19 +516,33 @@ class Preguntas extends Component
                 Rule::exists('escalas', 'id'),
             ],
         ]);
+
+        // Buscar la pregunta dentro del factor seleccionado
         $pregunta = Pregunta::query()
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($this->preguntaConfiguracionId);
+
+        // Obtener el tipo de respuesta "Escala de 0 a 10"
         $tipoEscala = TipoRespuesta::query()
             ->where('nombre', 'Escala de 0 a 10')
             ->firstOrFail();
+
+        // Buscar la configuración correspondiente a ese tipo
+        // de respuesta dentro de la pregunta seleccionada
         $configuracion = $pregunta->configuracionesRespuesta()
             ->where('tipo_respuesta_id', $tipoEscala->id)
             ->firstOrFail();
+
+        // Actualizar únicamente la escala seleccionada
+        // en la tabla pregunta_tipo_respuesta
         $configuracion->update([
             'escala_id' => $this->escalaSeleccionada
         ]);
+
+        // Cerrar el modal después de guardar la configuración
         Flux::modal('configurar-respuestas')->close();
+
+        // Mostrar un mensaje de confirmación al usuario
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: 'Escala configurada correctamente',
@@ -520,6 +581,9 @@ class Preguntas extends Component
             ->orderByRaw('CASE WHEN id = 2 THEN 0 ELSE 1 END')
             ->get();
 
+        $escalaActual = $escalas->firstWhere('id', (int) $this->escalaSeleccionada);
+
+
         return view('livewire.administracion.preguntas', [
             'factores' => $factores,
             'factorActual' => $factorActual,
@@ -527,7 +591,8 @@ class Preguntas extends Component
             'estadisticas' => $estadisticas,
             'totalPreguntas' => $factores->sum('preguntas_count'),
             'tiposRespuesta' => $tiposRespuesta,
-            'escalas' => $escalas
+            'escalas' => $escalas,
+            'escalaActual' => $escalaActual
         ]);
     }
 }
