@@ -323,12 +323,13 @@
                 {{-- ENCABEZADO --}}
                 <div>
                     <flux:heading size="xl">
-                        Nueva pregunta
+                        {{ $preguntaId ? 'Editar pregunta' : 'Nueva pregunta' }}
                     </flux:heading>
 
                     <flux:text class="mt-2">
-                        Complete la información para registrar
-                        una nueva pregunta.
+                        {{ $preguntaId
+                            ? 'Modifique la información de la pregunta seleccionada.'
+                            : 'Complete la información para registrar una nueva pregunta.' }}
                     </flux:text>
                 </div>
 

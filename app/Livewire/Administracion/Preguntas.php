@@ -22,6 +22,8 @@ class Preguntas extends Component
     public ?int $preguntaEstadoId = null;
     public string $nombrePreguntaEstado = '';
     public bool $nuevoEstadoPregunta = false;
+    // editar pregunta
+    public ?int $preguntaId = null;
 
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
@@ -121,6 +123,20 @@ class Preguntas extends Component
         return $query->paginate($this->getPerPage());
     }
 
+    public function resetData(): void
+    {
+        $this->reset([
+            'preguntaId',
+            'temaId',
+            'texto',
+            'obligatoria',
+            'tiposRespuestaSeleccionados',
+        ]);
+
+        $this->resetValidation();
+    }
+
+
     // abrir modal de pregunta
     public function abrirNuevaPregunta(): void
     {
@@ -128,28 +144,14 @@ class Preguntas extends Component
             return;
         }
 
-        $this->reset([
-            'temaId',
-            'texto',
-            'obligatoria',
-            'tiposRespuestaSeleccionados',
-        ]);
-
-        $this->resetValidation();
+        $this->resetData();
 
         Flux::modal('nueva-pregunta')->show();
     }
 
     public function cerrarNuevaPregunta(): void
     {
-        $this->reset([
-            'temaId',
-            'texto',
-            'obligatoria',
-            'tiposRespuestaSeleccionados',
-        ]);
-
-        $this->resetValidation();
+        $this->resetData();
 
         Flux::modal('nueva-pregunta')->close();
     }
@@ -236,45 +238,96 @@ class Preguntas extends Component
             ],
         ]);
         
-        DB::transaction(function() {
-            $factor = Factor::findOrFail(
-                $this->factorSeleccionado
-            );
-            $codigo = $this->generarCodigo(
-                $factor->nombre
-            );
-            $pregunta = Pregunta::create([
-                'codigo' => $codigo,
-                'factor_id' => $factor->id,
-                'tema_id' => $this->temaId,
-                'texto' => trim($this->texto),
-                'obligatoria' => (bool) $this->obligatoria,
-                'es_nps' => false,
-                'es_predeterminada' => false,
-                'activo' => false,
-            ]);
-            foreach($this->tiposRespuestaSeleccionados as $tipoId){
-                $pregunta->configuracionesRespuesta()->create([
-                    'tipo_respuesta_id' => $tipoId,
-                    'escala_id' => null
-                ]);
-            }
-        });
-        $mensaje = 'Pregunta guardada correctamente';
+        $mensaje = DB::transaction(function() {
+            if ($this->preguntaId !== null){
 
-        $this->reset([
-            'temaId',
-            'texto',
-            'obligatoria',
-            'tiposRespuestaSeleccionados'
-        ]);
-        
+                $pregunta = Pregunta::query()
+                ->where('factor_id', $this->factorSeleccionado)
+                ->findOrFail($this->preguntaId);
+
+                $pregunta->update([
+                    'tema_id' => $this->temaId,
+                    'texto' => trim($this->texto),
+                    'obligatoria' => (bool) $this->obligatoria
+                ]);
+
+                $mensaje = 'Pregunta actualizada correctamente';
+
+            } else {
+                $factor = Factor::findOrFail(
+                    $this->factorSeleccionado
+                );
+                $codigo = $this->generarCodigo(
+                    $factor->nombre
+                );
+                $pregunta = Pregunta::create([
+                    'codigo' => $codigo,
+                    'factor_id' => $factor->id,
+                    'tema_id' => $this->temaId,
+                    'texto' => trim($this->texto),
+                    'obligatoria' => (bool) $this->obligatoria,
+                    'es_nps' => false,
+                    'es_predeterminada' => false,
+                    'activo' => false,
+                ]);
+                $mensaje = 'Pregunta guardada correctamente';
+            }
+
+            // sincronizar tipos de respuesta
+            $tiposSeleccionados = array_map(
+                'intval',
+                $this->tiposRespuestaSeleccionados
+            );
+            // eliminar tipos que fueron desmarcados
+            $pregunta->configuracionesRespuesta()
+            ->whereNotIn('tipo_respuesta_id', $tiposSeleccionados)
+            ->delete();
+            // agregar tipos nuevos sin duplicar los existentes
+            foreach($tiposSeleccionados as $tipoId){
+                $pregunta->configuracionesRespuesta()
+                ->firstOrCreate(
+                    ['tipo_respuesta_id' => $tipoId],
+                    ['escala_id' => null]
+                );
+            }
+            return $mensaje;
+            
+            // foreach($this->tiposRespuestaSeleccionados as $tipoId){
+            //     $pregunta->configuracionesRespuesta()->create([
+            //         'tipo_respuesta_id' => $tipoId,
+            //         'escala_id' => null
+            //     ]);
+            // }
+        });
+        $this->resetData();
         Flux::modal('nueva-pregunta')->close();
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: $mensaje,
             tipo: 'success'
         );
+    }
+
+    public function editar(int $id): void
+    {
+        if($this->factorSeleccionado === null){
+            return;
+        }
+        $this->resetData();
+        $pregunta = Pregunta::query()
+        ->with('tiposRespuesta')
+        ->where('factor_id', $this->factorSeleccionado)
+        ->findOrFail($id);
+        $this->preguntaId = $pregunta->id;
+        $this->temaId = $pregunta->tema_id;
+        $this->texto = $pregunta->texto;
+        $this->obligatoria = $pregunta->obligatoria ? '1' : '0';
+        $this->tiposRespuestaSeleccionados = $pregunta
+        ->tiposRespuesta
+        ->pluck('id')
+        ->map(fn ($id) => (string) $id)
+        ->all();
+        Flux::modal('nueva-pregunta')->show();
     }
 
     // confirmar cambio estado
