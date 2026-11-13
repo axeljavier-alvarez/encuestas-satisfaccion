@@ -31,7 +31,6 @@ class Preguntas extends Component
     public ?int $preguntaConfiguracionId = null;
     public ?int $escalaSeleccionada = null;
     public bool $tieneEscala = false;
-    public bool $tieneOtrosTipos = false;
     public string $textoPreguntaConfiguracion = '';
     // propiedades para configurar respuestas
     public ?int $tipoRespuestaConfiguracionId = null;
@@ -431,7 +430,6 @@ class Preguntas extends Component
             'preguntaConfiguracionId',
             'escalaSeleccionada',
             'tieneEscala',
-            'tieneOtrosTipos',
             'textoPreguntaConfiguracion',
             'tipoRespuestaConfiguracionId',
             'tiposConfiguracionDisponibles',
@@ -464,16 +462,6 @@ class Preguntas extends Component
 
         // Indicar si la pregunta utiliza una escala numérica
         $this->tieneEscala = $configuracionEscala !== null;
-
-        // Verificar si tiene selección única o múltiple
-        $this->tieneOtrosTipos = $configuraciones->contains(
-            fn($config) =>
-            in_array(
-                $config->tipoRespuesta?->nombre,
-                ['Selección única', 'Selección múltiple'],
-                true
-            )
-        );
 
         // Si la pregunta ya tiene una escala configurada,
         // recuperar su ID para mostrarla seleccionada en el formulario
@@ -556,15 +544,14 @@ class Preguntas extends Component
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($this->preguntaConfiguracionId);
 
-        // Obtener el tipo de respuesta "Escala de 0 a 10"
-        $tipoEscala = TipoRespuesta::query()
-            ->where('nombre', 'Escala de 0 a 10')
-            ->firstOrFail();
-
         // Buscar la configuración correspondiente a ese tipo
         // de respuesta dentro de la pregunta seleccionada
         $configuracion = $pregunta->configuracionesRespuesta()
-            ->where('tipo_respuesta_id', $tipoEscala->id)
+            ->whereHas(
+                'tipoRespuesta',
+                fn($query) =>
+                $query->where('nombre', 'Escala de 0 a 10')
+            )
             ->firstOrFail();
 
         // Actualizar únicamente la escala seleccionada
@@ -608,6 +595,11 @@ class Preguntas extends Component
     // eliminar una opción, conservando un mínimo de dos
     public function quitarOpcionRespuesta(int $indice): void
     {
+        // evitar eliminar 2 opciones desde el metodo
+        if ($indice < 2 || count($this->opcionesConfiguracion) <= 2) {
+            return;
+        }
+
         if (! $this->esTipoSeleccion()) {
             return;
         }
