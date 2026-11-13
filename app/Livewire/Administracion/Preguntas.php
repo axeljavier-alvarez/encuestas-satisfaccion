@@ -38,6 +38,10 @@ class Preguntas extends Component
     public array $tiposConfiguracionDisponibles = [];
     // opciones de selección única o múltiple
     public array $opcionesConfiguracion = [];
+    // estado de configuracion
+    public array $estadoConfiguracion = [];
+    
+    public bool $preguntaConfiguracionActiva = false;
 
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
@@ -385,6 +389,7 @@ class Preguntas extends Component
             return;
         }
         $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($this->preguntaEstadoId);
 
         if ($pregunta->es_predeterminada) {
@@ -392,6 +397,29 @@ class Preguntas extends Component
         }
 
         $nuevoEstado = !(bool) $pregunta->activo;
+
+        // validacion para activar pregunta
+        if ($nuevoEstado) {
+            $estado = $this->verificarConfiguracion($pregunta);
+            if (! $estado['completo']) {
+                // obtener tipos de respuesta pendientes
+                $pendientes = collect($estado['detalles'])
+                    ->filter(fn($detalle) => ! $detalle['completo'])
+                    ->pluck('nombre')
+                    ->implode(', ');
+
+                Flux::modal('confirmar-estado-pregunta')->close();
+
+                $this->dispatch(
+                    'mostrar-mensaje',
+                    mensaje: 'No se puede activar la pregunta. '
+                        . 'Debe configurar: ' . $pendientes,
+                    tipo: 'error'
+                );
+
+                return;
+            }
+        }
         $pregunta->activo = $nuevoEstado;
         $pregunta->save();
         $mensaje = $nuevoEstado
@@ -427,13 +455,15 @@ class Preguntas extends Component
 
         // Limpiar los datos de configuraciones anteriores
         $this->reset([
+            'preguntaConfiguracionActiva',
             'preguntaConfiguracionId',
             'escalaSeleccionada',
             'tieneEscala',
             'textoPreguntaConfiguracion',
             'tipoRespuestaConfiguracionId',
             'tiposConfiguracionDisponibles',
-            'opcionesConfiguracion'
+            'opcionesConfiguracion',
+            'estadoConfiguracion'
         ]);
 
         // Limpiar los errores de validación anteriores
@@ -446,8 +476,17 @@ class Preguntas extends Component
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($id);
 
+        $this->preguntaConfiguracionActiva = (bool) $pregunta->activo;
+
+
+        // aca agregar la nueva opcion
+        $this->estadoConfiguracion = $this->verificarConfiguracion($pregunta);
+
         // Obtener las configuraciones de respuesta de la pregunta
         $configuraciones = $pregunta->configuracionesRespuesta;
+
+
+
 
         // Buscar si la pregunta tiene el tipo de respuesta
         // "Escala de 0 a 10"
@@ -771,7 +810,6 @@ class Preguntas extends Component
             'La etiqueta no puede superar los 255 caracteres.',
         ]);
 
-
         // Validar que las etiquetas adicionales no estén vacías
         // cuando la opción habilita texto.
         foreach ($this->opcionesConfiguracion as $indice => $opcion) {
@@ -847,6 +885,51 @@ class Preguntas extends Component
             mensaje: 'Opciones de respuesta configuradas correctamente',
             tipo: 'success'
         );
+    }
+    // metodo para verificar las respuestas configuradas de escala, opcion multiple y opcion unica
+    public function verificarConfiguracion(Pregunta $pregunta): array
+    {
+        $configuraciones = $pregunta->configuracionesRespuesta()
+            ->with('tipoRespuesta')
+            ->get();
+
+        $detalles = [];
+
+        foreach ($configuraciones as $config) {
+            $nombre = $config->tipoRespuesta?->nombre;
+            if ($nombre === 'Escala de 0 a 10') {
+                $completo = $config->escala_id !== null
+                    && Escala::whereKey($config->escala_id)->exists();
+                $mensaje = $completo
+                    ? 'Escala configurada correctamente'
+                    : 'No ha seleccionado una escala';
+            } else if (in_array($nombre, ['Selección única', 'Selección múltiple'], true)) {
+                $cantidad = $config->opcionesRespuesta()->count();
+                $completo = $cantidad >= 2;
+                $mensaje = $completo
+                    ? "$cantidad opciones configuradas"
+                    : "Debe ingresar al menos dos opciones de respuesta";
+            } elseif ($nombre === 'Texto abierto') {
+                $completo = true;
+                $mensaje = 'No requiere configuración';
+            } else {
+                // evitar activar tipos desconocidos sin validación
+                $completo = false;
+                $mensaje = 'Tipo de respuesta sin configuración definida';
+            }
+
+            $detalles[] = [
+                'nombre' => $nombre ?? 'Tipo desconocido',
+                'completo' => $completo,
+                'mensaje' => $mensaje,
+            ];
+        }
+
+        return [
+            'completo' => count($detalles) > 0
+                && collect($detalles)->every(fn($detalle) => $detalle['completo']),
+            'detalles' => $detalles,
+        ];
     }
 
     public function render()

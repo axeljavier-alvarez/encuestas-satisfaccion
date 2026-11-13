@@ -435,17 +435,97 @@
                     </flux:text>
                 </div>
 
-                {{-- PREGUNTA SELECCIONADA --}}
-                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
 
-                    <flux:text class="text-xs font-medium">
-                        Pregunta seleccionada
+                {{-- ESTADO DE CONFIGURACIÓN --}}
+                <div
+                    class="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-800/30">
+
+                    {{-- ENCABEZADO --}}
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+
+                        <div class="flex items-center gap-2">
+                            <flux:icon.clipboard-document-check class="size-5 text-zinc-500 dark:text-zinc-400" />
+
+                            <flux:heading size="sm">
+                                Estado de configuración
+                            </flux:heading>
+                        </div>
+
+
+                        {{-- ESTADO DE LA PREGUNTA --}}
+                        @if ($preguntaConfiguracionActiva)
+                            <flux:badge color="green" size="sm" icon="check-circle">
+                                Activa
+                            </flux:badge>
+                        @elseif ($estadoConfiguracion['completo'] ?? false)
+                            <flux:badge color="blue" size="sm" icon="check-circle">
+                                Lista para activar
+                            </flux:badge>
+                        @else
+                            <flux:badge color="amber" size="sm" icon="exclamation-circle">
+                                Pendiente
+                            </flux:badge>
+                        @endif
+
+
+                    </div>
+
+                    {{-- DESCRIPCIÓN --}}
+
+                    <flux:text class="mt-2 text-xs">
+
+                        @if ($preguntaConfiguracionActiva)
+                            Esta pregunta se encuentra activa y disponible para
+                            utilizarse en las encuestas.
+                        @elseif ($estadoConfiguracion['completo'] ?? false)
+                            Todos los tipos de respuesta están configurados correctamente.
+                            Puede activar esta pregunta cuando lo desee.
+                        @else
+                            Complete los tipos de respuesta pendientes para poder
+                            activar esta pregunta.
+                        @endif
+
                     </flux:text>
 
-                    <p class="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {{ $textoPreguntaConfiguracion }}
-                    </p>
+
+                    {{-- DETALLE DE TIPOS DE RESPUESTA --}}
+                    @if (!empty($estadoConfiguracion['detalles']))
+
+                        <div class="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+
+                            @foreach ($estadoConfiguracion['detalles'] as $detalle)
+                                <div class="flex items-start gap-3">
+
+                                    {{-- ICONO DE ESTADO --}}
+                                    @if ($detalle['completo'])
+                                        <flux:icon.check-circle
+                                            class="mt-0.5 size-5 shrink-0 text-green-600 dark:text-green-400" />
+                                    @else
+                                        <flux:icon.exclamation-circle class="mt-0.5 size-5 shrink-0 text-amber-500" />
+                                    @endif
+
+                                    {{-- INFORMACIÓN --}}
+                                    <div class="min-w-0 flex-1">
+
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            {{ $detalle['nombre'] }}
+                                        </p>
+
+                                        <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ $detalle['mensaje'] }}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+                            @endforeach
+
+                        </div>
+
+                    @endif
+
                 </div>
+
 
                 @if (count($tiposConfiguracionDisponibles) > 0)
 
