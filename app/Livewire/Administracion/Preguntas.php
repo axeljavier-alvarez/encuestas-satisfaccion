@@ -8,6 +8,7 @@ use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\OpcionRespuesta;
 use Flux\Flux;
 
 class Preguntas extends Component
@@ -32,6 +33,12 @@ class Preguntas extends Component
     public bool $tieneEscala = false;
     public bool $tieneOtrosTipos = false;
     public string $textoPreguntaConfiguracion = '';
+    // propiedades para configurar respuestas
+    public ?int $tipoRespuestaConfiguracionId = null;
+    // tipos disponibles para la pregunta seleccionada
+    public array $tiposConfiguracionDisponibles = [];
+    // opciones de selección única o múltiple
+    public array $opcionesConfiguracion = [];
 
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
@@ -425,7 +432,10 @@ class Preguntas extends Component
             'escalaSeleccionada',
             'tieneEscala',
             'tieneOtrosTipos',
-            'textoPreguntaConfiguracion'
+            'textoPreguntaConfiguracion',
+            'tipoRespuestaConfiguracionId',
+            'tiposConfiguracionDisponibles',
+            'opcionesConfiguracion'
         ]);
 
         // Limpiar los errores de validación anteriores
@@ -455,14 +465,12 @@ class Preguntas extends Component
         // Indicar si la pregunta utiliza una escala numérica
         $this->tieneEscala = $configuracionEscala !== null;
 
-        // Verificar si existen otros tipos de respuesta
-        // diferentes de "Escala de 0 a 10" y "Texto abierto"
-        // Por ejemplo: Selección única o Selección múltiple
+        // Verificar si tiene selección única o múltiple
         $this->tieneOtrosTipos = $configuraciones->contains(
             fn($config) =>
-            ! in_array(
+            in_array(
                 $config->tipoRespuesta?->nombre,
-                ['Escala de 0 a 10', 'Texto abierto'],
+                ['Selección única', 'Selección múltiple'],
                 true
             )
         );
@@ -473,6 +481,32 @@ class Preguntas extends Component
             $this->escalaSeleccionada = (int) $configuracionEscala->escala_id;
         }
 
+        // obtener tipos configurables de la pregunta, tabla pregunta_tipo_repuesta
+        $this->tiposConfiguracionDisponibles = $configuraciones
+            ->filter(
+                fn($config) =>
+                in_array(
+                    $config->tipoRespuesta?->nombre,
+                    [
+                        'Escala de 0 a 10',
+                        'Selección única',
+                        'Selección múltiple',
+                    ],
+                    true
+                )
+            )
+            // arreglo mas sencillo para pregunta_tipo_respuesta
+            ->map(fn($config) => [
+                'id' => $config->tipo_respuesta_id,
+                'nombre' => $config->tipoRespuesta->nombre,
+            ])
+            ->values()
+            ->all();
+        // seleccionar el primer tipo disponible
+        $this->tipoRespuestaConfiguracionId =
+            $this->tiposConfiguracionDisponibles[0]['id'] ?? null;
+        // recuperar opciones si corresponde
+        $this->cargarOpcionesRespuesta();
         // Depuración: permite verificar los tipos de respuesta
         // y la escala recuperada desde la base de datos
         // dd([
@@ -550,6 +584,278 @@ class Preguntas extends Component
         );
     }
 
+    // Estructura inicial de una opción respuesta
+    private function nuevaOpcionRespuesta(): array
+    {
+        return [
+            'id' => null,
+            'valor' => '',
+            'etiqueta' => '',
+            'es_excluyente' => false,
+            'habilita_texto' => false,
+            'etiqueta_texto_adicional' => '',
+        ];
+    }
+    // agregar nueva opción al formulario
+    public function agregarOpcionRespuesta(): void
+    {
+        if (!$this->esTipoSeleccion()) {
+            return;
+        }
+        $this->opcionesConfiguracion[] = $this->nuevaOpcionRespuesta();
+    }
+
+    // eliminar una opción, conservando un mínimo de dos
+    public function quitarOpcionRespuesta(int $indice): void
+    {
+        if (! $this->esTipoSeleccion()) {
+            return;
+        }
+
+        if (count($this->opcionesConfiguracion) <= 2) {
+            return;
+        }
+
+
+        if (! array_key_exists($indice, $this->opcionesConfiguracion)) {
+            return;
+        }
+
+        unset($this->opcionesConfiguracion[$indice]);
+        // reorganizar los indices para livewire
+        $this->opcionesConfiguracion = array_values(
+            $this->opcionesConfiguracion
+        );
+        $this->resetValidation();
+    }
+
+    // comprobar si es de selección unica o multiple
+    private function esTipoSeleccion(): bool
+    {
+        $tipo = collect($this->tiposConfiguracionDisponibles)
+            ->firstWhere('id', $this->tipoRespuestaConfiguracionId);
+
+        return in_array(
+            $tipo['nombre'] ?? null,
+            ['Selección única', 'Selección múltiple'],
+            true
+        );
+    }
+    /* recuperar las opciones existentes del tipo seleccionado */
+    private function cargarOpcionesRespuesta(): void
+    {
+        $this->opcionesConfiguracion = [];
+
+        if (
+            $this->preguntaConfiguracionId === null ||
+            $this->tipoRespuestaConfiguracionId === null ||
+            ! $this->esTipoSeleccion()
+        ) {
+            return;
+        }
+
+        $configuracion = PreguntaTipoRespuesta::query()
+            ->where('pregunta_id', $this->preguntaConfiguracionId)
+            ->where('tipo_respuesta_id', $this->tipoRespuestaConfiguracionId)
+            ->firstOrFail();
+
+        $this->opcionesConfiguracion = $configuracion
+            ->opcionesRespuesta()
+            ->orderBy('id')
+            ->get()
+            ->map(fn($opcion) => [
+                'id' => $opcion->id,
+                'valor' => $opcion->valor,
+                'etiqueta' => $opcion->etiqueta,
+                'es_excluyente' => (bool) $opcion->es_excluyente,
+                'habilita_texto' => (bool) $opcion->habilita_texto,
+                'etiqueta_texto_adicional' =>
+                $opcion->etiqueta_texto_adicional ?? '',
+            ])
+            ->all();
+
+        // Completar hasta tener dos opciones como mínimo
+        while (count($this->opcionesConfiguracion) < 2) {
+            $this->opcionesConfiguracion[] = $this->nuevaOpcionRespuesta();
+        }
+    }
+
+    /* actualizar el form al cambiar tipo de respuesta */
+    public function updatedTipoRespuestaConfiguracionId(): void
+    {
+        $this->resetValidation();
+        $this->cargarOpcionesRespuesta();
+    }
+
+    /* limpiar etiqueta adicional al desactivar el texto */
+    public function updatedOpcionesConfiguracion($valor, $clave): void
+    {
+        if (preg_match('/^(\d+)\.habilita_texto$/', (string) $clave, $coincidencias)) {
+            $indice = (int) $coincidencias[1];
+            if (! $valor && isset($this->opcionesConfiguracion[$indice])) {
+                $this->opcionesConfiguracion[$indice]['etiqueta_texto_adicional'] = '';
+            }
+        }
+    }
+    /* guardar opciones de seleccion unica o multiple*/
+    public function guardarOpcionesRespuesta(): void
+    {
+        if (
+            $this->preguntaConfiguracionId === null ||
+            $this->factorSeleccionado === null ||
+            ! $this->esTipoSeleccion()
+        ) {
+            return;
+        }
+        // validar que la pregunta pertenezca al factor
+        $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($this->preguntaConfiguracionId);
+        // obtener configuracion del tipo seleccionado
+        $configuracion = $pregunta->configuracionesRespuesta()
+            ->where('tipo_respuesta_id', $this->tipoRespuestaConfiguracionId)
+            ->firstOrFail();
+
+        // Validar las opciones de respuesta
+
+        $this->validate([
+            'opcionesConfiguracion' => [
+                'required',
+                'array',
+                'min:2',
+            ],
+
+            'opcionesConfiguracion.*.id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'opcionesConfiguracion.*.valor' => [
+                'required',
+                'string',
+                'max:100',
+                'distinct:ignore_case',
+            ],
+
+            'opcionesConfiguracion.*.etiqueta' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'opcionesConfiguracion.*.es_excluyente' => [
+                'boolean',
+            ],
+
+            'opcionesConfiguracion.*.habilita_texto' => [
+                'boolean',
+            ],
+
+            'opcionesConfiguracion.*.etiqueta_texto_adicional' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+        ], [
+            'opcionesConfiguracion.required' =>
+            'Debe agregar opciones de respuesta.',
+
+            'opcionesConfiguracion.min' =>
+            'Debe registrar al menos dos opciones.',
+
+            'opcionesConfiguracion.*.valor.required' =>
+            'El valor es obligatorio.',
+
+            'opcionesConfiguracion.*.valor.distinct' =>
+            'Este valor ya está registrado en otra opción.',
+
+            'opcionesConfiguracion.*.valor.max' =>
+            'El valor no puede superar los 100 caracteres.',
+
+            'opcionesConfiguracion.*.etiqueta.required' =>
+            'La etiqueta es obligatoria.',
+
+            'opcionesConfiguracion.*.etiqueta.max' =>
+            'La etiqueta no puede superar los 255 caracteres.',
+        ]);
+
+
+        // Validar que las etiquetas adicionales no estén vacías
+        // cuando la opción habilita texto.
+        foreach ($this->opcionesConfiguracion as $indice => $opcion) {
+
+            if (
+                ! empty($opcion['habilita_texto']) &&
+                trim($opcion['etiqueta_texto_adicional'] ?? '') === ''
+            ) {
+                $this->addError(
+                    "opcionesConfiguracion.$indice.etiqueta_texto_adicional",
+                    'Debe ingresar la etiqueta del texto adicional.'
+                );
+            }
+        }
+
+        if ($this->getErrorBag()->isNotEmpty()) {
+            return;
+        }
+
+        DB::transaction(function () use ($configuracion) {
+            $idsExistentes = $configuracion
+                ->opcionesRespuesta()
+                ->pluck('id')
+                ->all();
+
+            $idsConservados = [];
+
+            foreach ($this->opcionesConfiguracion as $opcion) {
+                $datos = [
+                    'valor' => trim($opcion['valor']),
+                    'etiqueta' => trim($opcion['etiqueta']),
+                    'es_excluyente' =>
+                    (bool) $opcion['es_excluyente'],
+                    'habilita_texto' =>
+                    (bool) $opcion['habilita_texto'],
+                    'etiqueta_texto_adicional' =>
+                    ! empty($opcion['habilita_texto'])
+                        ? trim($opcion['etiqueta_texto_adicional'])
+                        : null
+                ];
+                if (! empty($opcion['id'])) {
+                    // actualizar opciones de esta configuración
+                    $registro = $configuracion
+                        ->opcionesRespuesta()
+                        ->findOrFail($opcion['id']);
+
+                    $registro->update($datos);
+                } else {
+                    // crear nueva opción
+                    $registro = $configuracion
+                        ->opcionesRespuesta()
+                        ->create($datos);
+                }
+                $idsConservados[] = $registro->id;
+            }
+
+            // eliminar opciones retiradas del formulario
+            $idsEliminar = array_diff(
+                $idsExistentes,
+                $idsConservados
+            );
+
+            if (! empty($idsEliminar)) {
+                $configuracion->opcionesRespuesta()
+                    ->whereIn('id', $idsEliminar)
+                    ->delete();
+            }
+        });
+        Flux::modal('configurar-respuestas')->close();
+
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: 'Opciones de respuesta configuradas correctamente',
+            tipo: 'success'
+        );
+    }
 
     public function render()
     {

@@ -418,6 +418,8 @@
 
 
         {{-- MODAL CONFIGURAR RESPUESTAS --}}
+
+        {{-- MODAL CONFIGURAR RESPUESTAS --}}
         <flux:modal name="configurar-respuestas" class="w-full max-w-xl">
 
             <div class="space-y-6">
@@ -433,8 +435,9 @@
                     </flux:text>
                 </div>
 
-                {{-- PREGUNTA --}}
+                {{-- PREGUNTA SELECCIONADA --}}
                 <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+
                     <flux:text class="text-xs font-medium">
                         Pregunta seleccionada
                     </flux:text>
@@ -444,129 +447,244 @@
                     </p>
                 </div>
 
-                @if ($tieneEscala)
+                @if (count($tiposConfiguracionDisponibles) > 0)
 
-                    <form wire:key="form-escala-{{ $preguntaConfiguracionId }}"
-                        wire:submit="guardarConfiguracionRespuestas" class="space-y-5">
-                        {{-- ESCALA DE RESPUESTA --}}
-                        <div class="space-y-3">
+                    {{-- TIPO DE RESPUESTA --}}
+                    <flux:select wire:model.live="tipoRespuestaConfiguracionId" label="Tipo de respuesta">
+                        @foreach ($tiposConfiguracionDisponibles as $tipo)
+                            <flux:select.option :value="$tipo['id']">
+                                {{ $tipo['nombre'] }}
+                            </flux:select.option>
+                        @endforeach
+                    </flux:select>
 
-                            <flux:heading size="lg">
-                                Escala de respuesta
-                            </flux:heading>
+                    @php
+                        $tipoActual = collect($tiposConfiguracionDisponibles)->firstWhere(
+                            'id',
+                            $tipoRespuestaConfiguracionId,
+                        );
 
-                            {{-- SELECT DE ESCALAS --}}
+                        $esSeleccion = in_array(
+                            $tipoActual['nombre'] ?? null,
+                            ['Selección única', 'Selección múltiple'],
+                            true,
+                        );
+                    @endphp
+
+                    {{-- CONFIGURACIÓN DE ESCALA --}}
+                    @if (($tipoActual['nombre'] ?? null) === 'Escala de 0 a 10')
+
+                        <form wire:key="form-escala-{{ $preguntaConfiguracionId }}"
+                            wire:submit="guardarConfiguracionRespuestas" class="space-y-5">
+
                             <flux:select wire:model.live="escalaSeleccionada" label="Seleccione una escala">
                                 <flux:select.option value="">
                                     Seleccione una escala
                                 </flux:select.option>
 
                                 @foreach ($escalas as $escala)
-                                    <flux:select.option :value="$escala->id"
-                                        wire:key="escala-opcion-{{ $escala->id }}">
+                                    <flux:select.option :value="$escala->id">
                                         {{ $escala->nombre }}
                                     </flux:select.option>
                                 @endforeach
                             </flux:select>
 
-                        </div>
 
+                            {{-- VISTA PREVIA --}}
+                            @if ($escalaSeleccionada && $escalaActual)
 
-                        @if ($escalaSeleccionada && $escalaActual)
-
-                            <div wire:key="vista-previa-{{ $preguntaConfiguracionId }}-{{ $escalaActual->id }}"
-                                class="rounded-xl border border-blue-200 bg-blue-50/40 p-4
-                   dark:border-blue-500/30 dark:bg-blue-500/5">
                                 <div
-                                    class="rounded-xl border border-zinc-200 bg-white p-4
-                        dark:border-zinc-700 dark:bg-zinc-900">
+                                    class="rounded-xl border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-500/30 dark:bg-blue-500/5">
 
-                                    <p class="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                        Vista previa de la escala
-                                    </p>
+                                    <div
+                                        class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
 
-                                    {{-- NÚMEROS DE LA ESCALA --}}
-                                    <div class="flex flex-wrap gap-1.5">
+                                        <p class="mb-3 text-sm font-semibold">
+                                            Vista previa de la escala
+                                        </p>
 
-                                        @for ($numero = $escalaActual->minimo; $numero <= $escalaActual->maximo; $numero++)
-                                            <div
-                                                class="flex h-8 min-w-8 items-center justify-center
-                                   rounded-lg border border-blue-200 bg-blue-50
-                                   px-2 text-xs font-semibold text-blue-700
-                                   dark:border-blue-500/30 dark:bg-blue-500/10
-                                   dark:text-blue-300">
-                                                {{ $numero }}
+                                        <div class="flex flex-wrap gap-1.5">
+
+                                            @for ($numero = $escalaActual->minimo; $numero <= $escalaActual->maximo; $numero++)
+                                                <div
+                                                    class="flex h-8 min-w-8 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-2 text-xs font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                                                    {{ $numero }}
+                                                </div>
+                                            @endfor
+
+                                        </div>
+
+                                        @if ($escalaActual->permite_no_sabe || $escalaActual->permite_no_aplica)
+
+                                            <div class="mt-2 flex flex-wrap gap-2">
+
+                                                @if ($escalaActual->permite_no_sabe)
+                                                    <div
+                                                        class="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs dark:border-zinc-700">
+                                                        No sabe
+                                                    </div>
+                                                @endif
+
+                                                @if ($escalaActual->permite_no_aplica)
+                                                    <div
+                                                        class="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs dark:border-zinc-700">
+                                                        No aplica
+                                                    </div>
+                                                @endif
+
                                             </div>
-                                        @endfor
+
+                                        @endif
 
                                     </div>
+                                </div>
 
-                                    {{-- OPCIONES ADICIONALES --}}
-                                    @if ($escalaActual->permite_no_sabe || $escalaActual->permite_no_aplica)
+                            @endif
 
-                                        <div class="mt-2 flex flex-wrap gap-2">
+                            <div class="flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-700">
 
-                                            @if ($escalaActual->permite_no_sabe)
-                                                <div
-                                                    class="rounded-lg border border-zinc-200 bg-white
-                                       px-3 py-1.5 text-xs font-medium
-                                       text-zinc-900 dark:border-zinc-700
-                                       dark:bg-zinc-800 dark:text-zinc-100">
-                                                    No sabe
+                                <flux:modal.close>
+                                    <flux:button type="button" variant="ghost">
+                                        Cancelar
+                                    </flux:button>
+                                </flux:modal.close>
+
+                                <flux:button type="submit" variant="primary" icon="check">
+                                    Guardar configuración
+                                </flux:button>
+
+                            </div>
+
+                        </form>
+
+                        {{-- CONFIGURACIÓN DE SELECCIÓN ÚNICA Y MÚLTIPLE --}}
+                    @elseif ($esSeleccion)
+                        <form
+                            wire:key="form-opciones-{{ $preguntaConfiguracionId }}-{{ $tipoRespuestaConfiguracionId }}"
+                            wire:submit="guardarOpcionesRespuesta" class="space-y-5">
+
+                            <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+
+                                {{-- ENCABEZADO DE OPCIONES --}}
+                                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+
+                                    <div>
+                                        <flux:heading size="sm">
+                                            Opciones de respuesta
+                                        </flux:heading>
+
+                                        <flux:text class="mt-1 text-xs">
+                                            Agregue al menos dos opciones. El valor es el código interno.
+                                        </flux:text>
+                                    </div>
+
+                                    <flux:button type="button" variant="primary" size="sm" icon="plus"
+                                        wire:click="agregarOpcionRespuesta">
+                                        Agregar
+                                    </flux:button>
+
+                                </div>
+
+                                {{-- LISTADO DINÁMICO --}}
+                                <div class="space-y-3">
+
+                                    @foreach ($opcionesConfiguracion as $indice => $opcion)
+                                        <div wire:key="opcion-{{ $tipoRespuestaConfiguracionId }}-{{ $opcion['id'] ?? 'nueva-' . $indice }}"
+                                            class="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+
+                                            {{-- VALOR Y ETIQUETA --}}
+                                            <div
+                                                class="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
+
+                                                <flux:input
+                                                    wire:model="opcionesConfiguracion.{{ $indice }}.valor"
+                                                    label="Valor" placeholder="ej. si" />
+
+                                                <flux:input
+                                                    wire:model="opcionesConfiguracion.{{ $indice }}.etiqueta"
+                                                    label="Etiqueta" placeholder="ej. Sí" />
+
+                                                <div class="sm:pt-6">
+                                                    <flux:button type="button" variant="danger" size="sm"
+                                                        wire:click="quitarOpcionRespuesta({{ $indice }})"
+                                                        :disabled="$indice < 2 || count($opcionesConfiguracion) <= 2">
+                                                        Quitar
+                                                    </flux:button>
                                                 </div>
-                                            @endif
 
-                                            @if ($escalaActual->permite_no_aplica)
-                                                <div
-                                                    class="rounded-lg border border-zinc-200 bg-white
-                                       px-3 py-1.5 text-xs font-medium
-                                       text-zinc-900 dark:border-zinc-700
-                                       dark:bg-zinc-800 dark:text-zinc-100">
-                                                    No aplica
+                                            </div>
+
+                                            {{-- CHECKBOXES --}}
+                                            <div
+                                                class="mt-3 flex flex-wrap gap-5 border-t border-zinc-200 pt-3 dark:border-zinc-700">
+
+                                                <flux:checkbox
+                                                    wire:model="opcionesConfiguracion.{{ $indice }}.es_excluyente"
+                                                    label="Es excluyente" />
+
+                                                <flux:checkbox
+                                                    wire:model.live="opcionesConfiguracion.{{ $indice }}.habilita_texto"
+                                                    label="Habilita texto" />
+
+                                            </div>
+
+                                            {{-- ETIQUETA ADICIONAL --}}
+                                            @if (!empty($opcion['habilita_texto']))
+                                                <div class="mt-3">
+
+                                                    <flux:input
+                                                        wire:model="opcionesConfiguracion.{{ $indice }}.etiqueta_texto_adicional"
+                                                        label="Etiqueta del texto adicional"
+                                                        placeholder="Ej. Especifique su respuesta" />
+
                                                 </div>
                                             @endif
 
                                         </div>
-
-                                    @endif
+                                    @endforeach
 
                                 </div>
+
+                                @error('opcionesConfiguracion')
+                                    <p class="mt-3 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
                             </div>
 
-                        @endif
+                            {{-- BOTONES --}}
+                            <div class="flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-700">
 
-                        {{-- OTROS TIPOS DE RESPUESTA --}}
-                        @if ($tieneOtrosTipos)
-                            <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
-                                <flux:text class="text-sm">
-                                    La configuración de selección única y múltiple
-                                    se encuentra en desarrollo.
-                                </flux:text>
-                            </div>
-                        @endif
+                                <flux:modal.close>
+                                    <flux:button type="button" variant="ghost">
+                                        Cancelar
+                                    </flux:button>
+                                </flux:modal.close>
 
-                        {{-- BOTONES --}}
-                        <div class="flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-700">
-
-                            <flux:modal.close>
-                                <flux:button type="button" variant="ghost">
-                                    Cancelar
+                                <flux:button type="submit" variant="primary" icon="check"
+                                    wire:loading.attr="disabled" wire:target="guardarOpcionesRespuesta">
+                                    Guardar configuración
                                 </flux:button>
-                            </flux:modal.close>
 
-                            <flux:button type="submit" variant="primary" icon="check"
-                                wire:loading.attr="disabled" wire:target="guardarConfiguracionRespuestas">
-                                Guardar configuración
-                            </flux:button>
+                            </div>
 
-                        </div>
-                    </form>
+                        </form>
+
+                    @endif
+                @else
+                    <div class="py-5 text-center">
+                        <flux:text>
+                            No hay tipos de respuesta configurables para esta pregunta.
+                        </flux:text>
+                    </div>
 
                 @endif
 
             </div>
 
         </flux:modal>
+
 
 
 
