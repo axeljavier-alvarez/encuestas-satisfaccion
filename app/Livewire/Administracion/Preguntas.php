@@ -40,7 +40,11 @@ class Preguntas extends Component
     public array $opcionesConfiguracion = [];
     // estado de configuracion
     public array $estadoConfiguracion = [];
-    
+    // opciones temporales
+    public array $opcionesTemporales = [];
+
+    public ?int $tipoRespuestaAnteriorId = null;
+
     public bool $preguntaConfiguracionActiva = false;
 
     public array $headers = [
@@ -463,7 +467,9 @@ class Preguntas extends Component
             'tipoRespuestaConfiguracionId',
             'tiposConfiguracionDisponibles',
             'opcionesConfiguracion',
-            'estadoConfiguracion'
+            'estadoConfiguracion',
+            'opcionesTemporales',
+            'tipoRespuestaAnteriorId'
         ]);
 
         // Limpiar los errores de validación anteriores
@@ -532,6 +538,10 @@ class Preguntas extends Component
         // seleccionar el primer tipo disponible
         $this->tipoRespuestaConfiguracionId =
             $this->tiposConfiguracionDisponibles[0]['id'] ?? null;
+
+        // guradar el tipo inicial para detectar cambios
+        $this->tipoRespuestaAnteriorId =
+            $this->tipoRespuestaConfiguracionId;
         // recuperar opciones si corresponde
         $this->cargarOpcionesRespuesta();
         // Depuración: permite verificar los tipos de respuesta
@@ -556,59 +566,7 @@ class Preguntas extends Component
      * y actualiza el campo escala_id de la configuración
      * correspondiente al tipo de respuesta "Escala de 0 a 10".
      */
-    public function guardarConfiguracionRespuestas(): void
-    {
-        // Verificar que exista una pregunta y un factor seleccionado,
-        // y que la pregunta tenga el tipo de respuesta escala
-        if (
-            $this->preguntaConfiguracionId === null ||
-            $this->factorSeleccionado === null ||
-            ! $this->tieneEscala
-        ) {
-            return;
-        }
-
-        // Validar que se haya seleccionado una escala válida
-        // y que exista en la tabla escalas
-        $this->validate([
-            'escalaSeleccionada' => [
-                'required',
-                'integer',
-                Rule::exists('escalas', 'id'),
-            ],
-        ]);
-
-        // Buscar la pregunta dentro del factor seleccionado
-        $pregunta = Pregunta::query()
-            ->where('factor_id', $this->factorSeleccionado)
-            ->findOrFail($this->preguntaConfiguracionId);
-
-        // Buscar la configuración correspondiente a ese tipo
-        // de respuesta dentro de la pregunta seleccionada
-        $configuracion = $pregunta->configuracionesRespuesta()
-            ->whereHas(
-                'tipoRespuesta',
-                fn($query) =>
-                $query->where('nombre', 'Escala de 0 a 10')
-            )
-            ->firstOrFail();
-
-        // Actualizar únicamente la escala seleccionada
-        // en la tabla pregunta_tipo_respuesta
-        $configuracion->update([
-            'escala_id' => $this->escalaSeleccionada
-        ]);
-
-        // Cerrar el modal después de guardar la configuración
-        Flux::modal('configurar-respuestas')->close();
-
-        // Mostrar un mensaje de confirmación al usuario
-        $this->dispatch(
-            'mostrar-mensaje',
-            mensaje: 'Escala configurada correctamente',
-            tipo: 'success'
-        );
-    }
+    
 
     // Estructura inicial de una opción respuesta
     private function nuevaOpcionRespuesta(): array
@@ -712,10 +670,28 @@ class Preguntas extends Component
     }
 
     /* actualizar el form al cambiar tipo de respuesta */
+
     public function updatedTipoRespuestaConfiguracionId(): void
     {
+        // Conservar las opciones del tipo anterior
+        if ($this->tipoRespuestaAnteriorId !== null) {
+            $this->opcionesTemporales[$this->tipoRespuestaAnteriorId] =
+                $this->opcionesConfiguracion;
+        }
+
+        $tipoActual = $this->tipoRespuestaConfiguracionId;
+
+        // Recuperar datos temporales o cargar desde la BD
+        if (array_key_exists($tipoActual, $this->opcionesTemporales)) {
+            $this->opcionesConfiguracion =
+                $this->opcionesTemporales[$tipoActual];
+        } else {
+            $this->cargarOpcionesRespuesta();
+        }
+
+        $this->tipoRespuestaAnteriorId = $tipoActual;
+
         $this->resetValidation();
-        $this->cargarOpcionesRespuesta();
     }
 
     /* limpiar etiqueta adicional al desactivar el texto */
@@ -883,6 +859,61 @@ class Preguntas extends Component
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: 'Opciones de respuesta configuradas correctamente',
+            tipo: 'success'
+        );
+    }
+
+
+    public function guardarConfiguracionRespuestas(): void
+    {
+        // Verificar que exista una pregunta y un factor seleccionado,
+        // y que la pregunta tenga el tipo de respuesta escala
+        if (
+            $this->preguntaConfiguracionId === null ||
+            $this->factorSeleccionado === null ||
+            ! $this->tieneEscala
+        ) {
+            return;
+        }
+
+        // Validar que se haya seleccionado una escala válida
+        // y que exista en la tabla escalas
+        $this->validate([
+            'escalaSeleccionada' => [
+                'required',
+                'integer',
+                Rule::exists('escalas', 'id'),
+            ],
+        ]);
+
+        // Buscar la pregunta dentro del factor seleccionado
+        $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($this->preguntaConfiguracionId);
+
+        // Buscar la configuración correspondiente a ese tipo
+        // de respuesta dentro de la pregunta seleccionada
+        $configuracion = $pregunta->configuracionesRespuesta()
+            ->whereHas(
+                'tipoRespuesta',
+                fn($query) =>
+                $query->where('nombre', 'Escala de 0 a 10')
+            )
+            ->firstOrFail();
+
+        // Actualizar únicamente la escala seleccionada
+        // en la tabla pregunta_tipo_respuesta
+        $configuracion->update([
+            'escala_id' => $this->escalaSeleccionada
+        ]);
+
+        // Cerrar el modal después de guardar la configuración
+        Flux::modal('configurar-respuestas')->close();
+
+        // Mostrar un mensaje de confirmación al usuario
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: 'Escala configurada correctamente',
             tipo: 'success'
         );
     }

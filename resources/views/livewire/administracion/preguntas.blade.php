@@ -677,19 +677,21 @@
                                                 class="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto]">
 
                                                 <flux:input
-                                                    wire:model="opcionesConfiguracion.{{ $indice }}.valor"
+                                                    wire:model.blur="opcionesConfiguracion.{{ $indice }}.valor"
                                                     label="Valor" placeholder="ej. si" />
 
                                                 <flux:input
-                                                    wire:model="opcionesConfiguracion.{{ $indice }}.etiqueta"
+                                                    wire:model.blur="opcionesConfiguracion.{{ $indice }}.etiqueta"
                                                     label="Etiqueta" placeholder="ej. Sí" />
 
                                                 <div class="sm:pt-6">
-                                                    <flux:button type="button" variant="danger" size="sm"
-                                                        wire:click="quitarOpcionRespuesta({{ $indice }})"
-                                                        :disabled="$indice < 2 || count($opcionesConfiguracion) <= 2">
-                                                        Quitar
-                                                    </flux:button>
+                                                    @if ($indice >= 2)
+                                                        <flux:button type="button" variant="danger" size="sm"
+                                                            wire:click="quitarOpcionRespuesta({{ $indice }})"
+                                                            :disabled="$indice < 2 || count($opcionesConfiguracion) <= 2">
+                                                            Quitar
+                                                        </flux:button>
+                                                    @endif
                                                 </div>
 
                                             </div>
@@ -713,7 +715,7 @@
                                                 <div class="mt-3">
 
                                                     <flux:input
-                                                        wire:model="opcionesConfiguracion.{{ $indice }}.etiqueta_texto_adicional"
+                                                        wire:model.blur="opcionesConfiguracion.{{ $indice }}.etiqueta_texto_adicional"
                                                         label="Etiqueta del texto adicional"
                                                         placeholder="Ej. Especifique su respuesta" />
 
