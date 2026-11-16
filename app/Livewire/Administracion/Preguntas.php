@@ -917,6 +917,8 @@ class Preguntas extends Component
             tipo: 'success'
         );
     }
+
+    
     // metodo para verificar las respuestas configuradas de escala, opcion multiple y opcion unica
     public function verificarConfiguracion(Pregunta $pregunta): array
     {
