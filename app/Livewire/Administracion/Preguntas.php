@@ -311,18 +311,35 @@ class Preguntas extends Component
                 $mensaje = 'Pregunta guardada correctamente';
             }
 
+
             if (! $pregunta->es_predeterminada) {
-                // sincronizar tipos de respuesta
+
+                // Tipos de respuesta seleccionados en el formulario
                 $tiposSeleccionados = array_map(
                     'intval',
                     $this->tiposRespuestaSeleccionados
                 );
-                // eliminar tipos que fueron desmarcados
-                $pregunta->configuracionesRespuesta()
+
+                // Obtener las configuraciones que ya no están seleccionadas
+                $configuracionesEliminar = $pregunta
+                    ->configuracionesRespuesta()
                     ->whereNotIn('tipo_respuesta_id', $tiposSeleccionados)
-                    ->delete();
-                // agregar tipos nuevos sin duplicar los existentes
+                    ->get();
+
+                foreach ($configuracionesEliminar as $configuracion) {
+
+                    // Eliminar las opciones asociadas a esta configuración
+                    $configuracion->opcionesRespuesta()->delete();
+
+                    // Eliminar la configuración de pregunta_tipo_respuesta
+                    // Esto también descarta su escala_id, si tenía una
+                    $configuracion->delete();
+                }
+
+                // Crear únicamente los tipos nuevos
+                // Los existentes conservan sus opciones y escala
                 foreach ($tiposSeleccionados as $tipoId) {
+
                     $pregunta->configuracionesRespuesta()
                         ->firstOrCreate(
                             ['tipo_respuesta_id' => $tipoId],
@@ -330,6 +347,7 @@ class Preguntas extends Component
                         );
                 }
             }
+
 
             return $mensaje;
 
@@ -405,6 +423,11 @@ class Preguntas extends Component
         // validacion para activar pregunta
         if ($nuevoEstado) {
             $estado = $this->verificarConfiguracion($pregunta);
+            if (! $estado['completo'] && $pregunta->activo) {
+                $pregunta->update([
+                    'activo' => false,
+                ]);
+            }
             if (! $estado['completo']) {
                 // obtener tipos de respuesta pendientes
                 $pendientes = collect($estado['detalles'])
@@ -566,7 +589,7 @@ class Preguntas extends Component
      * y actualiza el campo escala_id de la configuración
      * correspondiente al tipo de respuesta "Escala de 0 a 10".
      */
-    
+
 
     // Estructura inicial de una opción respuesta
     private function nuevaOpcionRespuesta(): array
@@ -918,7 +941,7 @@ class Preguntas extends Component
         );
     }
 
-    
+
     // metodo para verificar las respuestas configuradas de escala, opcion multiple y opcion unica
     public function verificarConfiguracion(Pregunta $pregunta): array
     {
