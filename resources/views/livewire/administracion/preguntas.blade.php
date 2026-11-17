@@ -334,7 +334,7 @@
                 </div>
 
                 {{-- FORMULARIO --}}
-                <form wire:submit="guardar" class="space-y-5">
+                <form wire:submit="{{ $preguntaId ? 'confirmarEdicion' : 'guardar' }}" class="space-y-5">
 
                     {{-- FACTOR --}}
                     <flux:input label="Factor" :value="$factorActual->nombre" icon="squares-2x2" readonly />
@@ -406,8 +406,8 @@
                         </flux:button>
 
                         <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
-                            wire:target="guardar">
-                            Guardar pregunta
+                            wire:target="guardar,confirmarEdicion">
+                            {{ $preguntaId ? 'Guardar cambios' : 'Guardar pregunta' }}
                         </flux:button>
 
                     </div>
@@ -775,6 +775,17 @@
             : '<strong>¿Está seguro de que desea desactivar la pregunta?</strong><br>' . e($nombrePreguntaEstado)"
             :texto-confirmar="$nuevoEstadoPregunta ? 'Sí, activar' : 'Sí, desactivar'"
             :color="$nuevoEstadoPregunta ? 'primary' : 'danger'" accion="cambiarEstadoPregunta" />
+
+
+        <x-confirmacion nombre="confirmar-edicion-pregunta" titulo="Confirmar edición de pregunta" :mensaje="$preguntaEdicionActiva && $cambianTiposRespuesta
+            ? '<strong>¿Está seguro de que desea guardar los cambios?</strong><br>
+                                   Esta pregunta se encuentra activa. Al modificar sus tipos de respuesta,
+                                   se desactivará automáticamente y deberá revisar su configuración
+                                   antes de volver a activarla.'
+            : '<strong>¿Está seguro de que desea guardar los cambios de esta pregunta?</strong><br>
+                                   Los cambios realizados se actualizarán en el sistema.'"
+            texto-confirmar="Sí, guardar cambios"
+            :color="$preguntaEdicionActiva && $cambianTiposRespuesta ? 'danger' : 'primary'" accion="guardar" />
 
 
         {{-- MENSAJE DE CONFIRMACIÓN --}}

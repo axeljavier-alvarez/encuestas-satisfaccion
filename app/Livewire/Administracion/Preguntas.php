@@ -47,6 +47,12 @@ class Preguntas extends Component
 
     public bool $preguntaConfiguracionActiva = false;
 
+    // Estado de la pregunta que se está editando
+    public bool $preguntaEdicionActiva = false;
+
+    // Indica si la edición modifica los tipos de respuesta
+    public bool $cambianTiposRespuesta = false;
+
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
         ['index' => 'codigo', 'label' => 'Código'],
@@ -155,6 +161,8 @@ class Preguntas extends Component
             'obligatoria',
             'tiposRespuestaSeleccionados',
             'esPredeterminada',
+            'preguntaEdicionActiva',
+            'cambianTiposRespuesta',
         ]);
 
         $this->resetValidation();
@@ -408,11 +416,12 @@ class Preguntas extends Component
             return $mensaje;
         });
 
+        // Cerrar los modales
+        Flux::modal('confirmar-edicion-pregunta')->close();
+        Flux::modal('nueva-pregunta')->close();
+
         // Limpiar las propiedades del formulario
         $this->resetData();
-
-        // Cerrar el modal de creación o edición
-        Flux::modal('nueva-pregunta')->close();
 
         // Mostrar mensaje de confirmación
         $this->dispatch(
@@ -428,24 +437,82 @@ class Preguntas extends Component
         if ($this->factorSeleccionado === null) {
             return;
         }
+
+        // Limpiar los datos anteriores
         $this->resetData();
+
+        // Buscar la pregunta con sus tipos de respuesta
         $pregunta = Pregunta::query()
             ->with('tiposRespuesta')
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($id);
+
+        // Cargar los datos en el formulario
         $this->preguntaId = $pregunta->id;
         $this->temaId = $pregunta->tema_id;
         $this->texto = $pregunta->texto;
         $this->obligatoria = $pregunta->obligatoria ? '1' : '0';
         $this->esPredeterminada = (bool) $pregunta->es_predeterminada;
 
+        // Guardar el estado actual de la pregunta
+        $this->preguntaEdicionActiva = (bool) $pregunta->activo;
+
+        // Cargar los tipos de respuesta seleccionados
         $this->tiposRespuestaSeleccionados = $pregunta
             ->tiposRespuesta
             ->pluck('id')
             ->map(fn($id) => (string) $id)
             ->all();
+
+        // Abrir el modal de edición
         Flux::modal('nueva-pregunta')->show();
     }
+
+
+    public function confirmarEdicion(): void
+    {
+        if (
+            $this->preguntaId === null ||
+            $this->factorSeleccionado === null
+        ) {
+            return;
+        }
+
+        // Validar antes de mostrar la confirmación
+        // Utiliza las mismas reglas que guardar()
+        // (conviene extraerlas a un método compartido).
+
+        $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($this->preguntaId);
+
+        // Obtener los tipos de respuesta actuales
+        $tiposAnteriores = $pregunta
+            ->configuracionesRespuesta()
+            ->pluck('tipo_respuesta_id')
+            ->map(fn($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        // Obtener los nuevos tipos seleccionados
+        $tiposActuales = collect($this->tiposRespuestaSeleccionados)
+            ->map(fn($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        // Determinar si se modificaron los tipos
+        $this->cambianTiposRespuesta =
+            $tiposAnteriores !== $tiposActuales;
+
+        // Consultar nuevamente el estado desde la BD
+        $this->preguntaEdicionActiva = (bool) $pregunta->activo;
+
+        // Abrir el modal de confirmación
+        Flux::modal('confirmar-edicion-pregunta')->show();
+    }
+
 
     // confirmar cambio estado
     public function confirmarCambioEstado(int $id): void
