@@ -229,11 +229,15 @@ class Preguntas extends Component
         );
     }
 
+
     public function guardar(): void
     {
+        // Verificar que exista un factor seleccionado
         if ($this->factorSeleccionado === null) {
             return;
         }
+
+        // Determinar si la pregunta que se está editando es predeterminada
         $esPredeterminada = $this->preguntaId !== null
             && Pregunta::query()
             ->where('factor_id', $this->factorSeleccionado)
@@ -241,6 +245,7 @@ class Preguntas extends Component
             ->where('es_predeterminada', true)
             ->exists();
 
+        // Validar los datos ingresados en el formulario
         $this->validate([
             'temaId' => [
                 'required',
@@ -271,33 +276,46 @@ class Preguntas extends Component
                 ],
         ]);
 
+        // Ejecutar los cambios dentro de una transacción
         $mensaje = DB::transaction(function () {
+
+            // EDITAR UNA PREGUNTA EXISTENTE
             if ($this->preguntaId !== null) {
+
                 $pregunta = Pregunta::query()
                     ->where('factor_id', $this->factorSeleccionado)
                     ->findOrFail($this->preguntaId);
 
-                // Campos que siempre pueden editarse
+                // Campos que siempre pueden modificarse
                 $datos = [
                     'tema_id' => $this->temaId,
                     'texto' => trim($this->texto),
                 ];
 
-                // Solo preguntas NO predeterminadas
+                // La obligatoriedad solo puede editarse
+                // en preguntas que no son predeterminadas
                 if (! $pregunta->es_predeterminada) {
                     $datos['obligatoria'] = (bool) $this->obligatoria;
                 }
 
+                // Actualizar los datos de la pregunta
                 $pregunta->update($datos);
 
                 $mensaje = 'Pregunta actualizada correctamente';
             } else {
+
+                // CREAR UNA NUEVA PREGUNTA
+
+                // Obtener el factor para generar el código
                 $factor = Factor::findOrFail(
                     $this->factorSeleccionado
                 );
+
                 $codigo = $this->generarCodigo(
                     $factor->nombre
                 );
+
+                // Registrar la pregunta inicialmente inactiva
                 $pregunta = Pregunta::create([
                     'codigo' => $codigo,
                     'factor_id' => $factor->id,
@@ -308,64 +326,102 @@ class Preguntas extends Component
                     'es_predeterminada' => false,
                     'activo' => false,
                 ]);
+
                 $mensaje = 'Pregunta guardada correctamente';
             }
 
-
+            // CONFIGURAR LOS TIPOS DE RESPUESTA
+            // Las preguntas predeterminadas conservan sus tipos originales
             if (! $pregunta->es_predeterminada) {
 
-                // Tipos de respuesta seleccionados en el formulario
+                // Obtener los tipos que tenía la pregunta antes de guardar
+                $tiposAnteriores = $pregunta
+                    ->configuracionesRespuesta()
+                    ->pluck('tipo_respuesta_id')
+                    ->map(fn($id) => (int) $id)
+                    ->sort()
+                    ->values()
+                    ->all();
+
+                // Obtener los tipos seleccionados actualmente
                 $tiposSeleccionados = array_map(
                     'intval',
                     $this->tiposRespuestaSeleccionados
                 );
 
-                // Obtener las configuraciones que ya no están seleccionadas
+                // Identificar las configuraciones que fueron desmarcadas
                 $configuracionesEliminar = $pregunta
                     ->configuracionesRespuesta()
-                    ->whereNotIn('tipo_respuesta_id', $tiposSeleccionados)
+                    ->whereNotIn(
+                        'tipo_respuesta_id',
+                        $tiposSeleccionados
+                    )
                     ->get();
 
+                // Eliminar las configuraciones que ya no corresponden
                 foreach ($configuracionesEliminar as $configuracion) {
 
-                    // Eliminar las opciones asociadas a esta configuración
+                    // Eliminar las opciones de selección única o múltiple
+                    // asociadas a la configuración que fue retirada
                     $configuracion->opcionesRespuesta()->delete();
 
-                    // Eliminar la configuración de pregunta_tipo_respuesta
-                    // Esto también descarta su escala_id, si tenía una
+                    // Eliminar la asociación en pregunta_tipo_respuesta
+                    // Si tenía escala_id, se elimina la asociación,
+                    // pero no el registro del catálogo de escalas
                     $configuracion->delete();
                 }
 
-                // Crear únicamente los tipos nuevos
-                // Los existentes conservan sus opciones y escala
+                // Registrar los nuevos tipos de respuesta
                 foreach ($tiposSeleccionados as $tipoId) {
 
+                    // firstOrCreate evita duplicar configuraciones
+                    // y conserva las opciones o escalas existentes
                     $pregunta->configuracionesRespuesta()
                         ->firstOrCreate(
                             ['tipo_respuesta_id' => $tipoId],
                             ['escala_id' => null]
                         );
                 }
+
+                // COMPROBAR SI CAMBIARON LOS TIPOS DE RESPUESTA
+
+                // Ordenar los tipos actuales para compararlos
+                // sin importar el orden de selección del formulario
+                $tiposActuales = collect($tiposSeleccionados)
+                    ->sort()
+                    ->values()
+                    ->all();
+
+                // Si se agregó o eliminó algún tipo de respuesta
+                // y la pregunta estaba activa, desactivarla
+                if (
+                    $tiposAnteriores !== $tiposActuales &&
+                    $pregunta->activo
+                ) {
+                    $pregunta->update([
+                        'activo' => false,
+                    ]);
+                }
             }
 
-
+            // Retornar el mensaje correspondiente
             return $mensaje;
-
-            // foreach($this->tiposRespuestaSeleccionados as $tipoId){
-            //     $pregunta->configuracionesRespuesta()->create([
-            //         'tipo_respuesta_id' => $tipoId,
-            //         'escala_id' => null
-            //     ]);
-            // }
         });
+
+        // Limpiar las propiedades del formulario
         $this->resetData();
+
+        // Cerrar el modal de creación o edición
         Flux::modal('nueva-pregunta')->close();
+
+        // Mostrar mensaje de confirmación
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: $mensaje,
             tipo: 'success'
         );
     }
+
 
     public function editar(int $id): void
     {
@@ -423,11 +479,6 @@ class Preguntas extends Component
         // validacion para activar pregunta
         if ($nuevoEstado) {
             $estado = $this->verificarConfiguracion($pregunta);
-            if (! $estado['completo'] && $pregunta->activo) {
-                $pregunta->update([
-                    'activo' => false,
-                ]);
-            }
             if (! $estado['completo']) {
                 // obtener tipos de respuesta pendientes
                 $pendientes = collect($estado['detalles'])
