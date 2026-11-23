@@ -2,13 +2,15 @@
 
 namespace App\Livewire\Administracion;
 
-use App\Models\Plantilla;
+use App\Models\{Plantilla, User};
 use App\Traits\{DataTable, Interact};
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Illuminate\Validation\Rule;
 use Flux\Flux;
-use Override;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
 
 class Plantillas extends Component
 {
@@ -16,12 +18,14 @@ class Plantillas extends Component
     public ?int $plantillaId = null;
     public string $nombre = '';
     public string $descripcion = '';
-    public string $estado = 'borrador';
 
     // propiedades para activar o desactivar plantillas
     public ?int $plantillaEstadoId = null;
     public string $nombrePlantillaEstado = '';
     public bool $nuevoEstadoPlantilla  = false;
+
+    // asignador seleccionado para la plantilla
+    public ?int $asignadorId = null;
 
     // contenido de la tabla
     public array $headers = [
@@ -85,9 +89,8 @@ class Plantillas extends Component
             'plantillaId',
             'nombre',
             'descripcion',
-            'estado'
+            'asignadorId',
         ]);
-        $this->estado = 'borrador';
         $this->resetValidation();
     }
 
@@ -131,43 +134,66 @@ class Plantillas extends Component
 
     public function guardar(): void
     {
+        // Validar los datos del formulario
         $this->validate([
             'nombre' => [
                 'required',
                 'string',
                 'max:255',
+                Rule::unique('plantillas', 'nombre')
+                    ->ignore($this->plantillaId),
             ],
+
             'descripcion' => [
                 'nullable',
                 'string',
                 'max:1000',
             ],
-            'estado' => [
+
+            'asignadorId' => [
                 'required',
-                Rule::in(['borrador', 'publicada']),
+                'integer',
+                Rule::exists('users', 'id')
+                    ->where('rol', 'asignador')
+                    ->where('activo', true),
             ],
+        ], [
+            'asignadorId.required' =>
+            'Seleccione un asignador.',
+
+            'asignadorId.exists' =>
+            'El asignador seleccionado no está disponible.',
+        ], [
+            'nombre' => 'nombre de la plantilla',
+            'descripcion' => 'descripción',
+            'asignadorId' => 'asignador',
         ]);
 
-        $datos = [
-            'nombre' => trim($this->nombre),
-            'descripcion' => trim($this->descripcion) ?: null,
-            'estado' => $this->estado
-        ];
-
-        if ($this->plantillaId !== null) {
-            // editar plantilla
-            $plantilla = Plantilla::findOrFail($this->plantillaId);
-            $plantilla->update($datos);
-            $mensaje = 'Plantilla actualizada correctamente';
-        } else {
-            // crear plantilla
-            Plantilla::create([
-                ...$datos,
-                'codigo' => $this->generarCodigo(),
-                'activo' => false
+        $mensaje = DB::transaction(function () {
+            $datos = [
+                'nombre' => trim($this->nombre),
+                'descripcion' => trim($this->descripcion) ?: null,
+            ];
+            if ($this->plantillaId !== null) {
+                // editar plantilla
+                $plantilla = Plantilla::findOrFail($this->plantillaId);
+                $plantilla->update($datos);
+                $mensaje = 'Plantilla actualizada correctamente';
+            } else {
+                $plantilla = Plantilla::create([
+                    ...$datos,
+                    'codigo' => $this->generarCodigo(),
+                    'estado' => 'borrador',
+                    'activo' => false
+                ]);
+                $mensaje = 'Plantilla guardada correctamente';
+            }
+            // asociar al asignador seleccionado
+            $plantilla->usuarios()->sync([
+                $this->asignadorId,
             ]);
-            $mensaje = 'Plantilla guardada correctamente';
-        }
+            return $mensaje;
+        });
         // cerrar modal
         Flux::modal('nueva-plantilla')->close();
         $this->resetData();
@@ -185,7 +211,6 @@ class Plantillas extends Component
         $this->plantillaId = $plantilla->id;
         $this->nombre = $plantilla->nombre;
         $this->descripcion = $plantilla->descripcion ?? '';
-        $this->estado = $plantilla->estado;
         // Abrir el modal
         Flux::modal('nueva-plantilla')->show();
     }

@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\Searchable;
 
 class Plantilla extends Model
 {
+    use Searchable;
+
     protected $table = 'plantillas';
 
     protected $fillable = [

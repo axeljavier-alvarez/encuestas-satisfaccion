@@ -110,9 +110,130 @@
                 </flux:text>
             </div>
             {{-- formulario --}}
-            <form>
-                
+            <form wire:submit="guardar" class="space-y-5">
+                {{-- nombre --}}
+                <flux:input wire:model="nombre" label="Nombre de la plantilla"
+                    placeholder="Ej. Encuesta de satisfacción" />
+                {{-- descripcion --}}
+                <flux:textarea wire:model="descripcion" label="Descripción"
+                    placeholder="Describa el propósito de la plantilla..." rows="3" resize="vertical" />
+                {{-- ESTADO --}}
+                <flux:select wire:model="estado" label="Estado de la plantilla">
+                    <flux:select.option value="borrador">
+                        Borrador
+                    </flux:select.option>
+
+                    <flux:select.option value="publicada">
+                        Publicada
+                    </flux:select.option>
+                </flux:select>
+                {{-- BOTONES --}}
+                <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end">
+                    <flux:button type="button" variant="ghost" wire:click="cerrarNuevaPlantilla">
+                        Cancelar
+                    </flux:button>
+                    <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
+                        wire:target="guardar">
+                        {{ $plantillaId ? 'Guardar cambios' : 'Guardar plantilla' }}
+                    </flux:button>
+                </div>
             </form>
         </div>
     </flux:modal>
+    {{-- CONFIRMACIÓN DE CAMBIO DE ESTADO --}}
+    <x-confirmacion nombre="confirmar-estado-plantilla" :titulo="$nuevoEstadoPlantilla ? 'Activar plantilla' : 'Desactivar plantilla'" :mensaje="$nuevoEstadoPlantilla
+        ? '<strong>¿Está seguro de que desea activar esta plantilla?</strong><br>' . e($nombrePlantillaEstado)
+        : '<strong>¿Está seguro de que desea desactivar esta plantilla?</strong><br>' . e($nombrePlantillaEstado)"
+        :texto-confirmar="$nuevoEstadoPlantilla ? 'Sí, activar' : 'Sí, desactivar'"
+        :color="$nuevoEstadoPlantilla ? 'primary' : 'danger'" accion="cambiarEstadoPlantilla" />
+    {{--  alerta --}}
+    <x-alerta />
+    {{-- tabla de plantillas --}}
+    <div
+        class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+
+        <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
+            empty-message="No se encontraron plantillas.">
+
+            @interact('id', $row)
+                {{ $row->id }}
+            @endinteract
+
+            @interact('codigo', $row)
+                <flux:badge color="blue" size="sm">
+                    {{ $row->codigo }}
+                </flux:badge>
+            @endinteract
+
+            @interact('nombre', $row)
+                <p class="font-medium text-zinc-900 dark:text-zinc-100">
+                    {{ $row->nombre }}
+                </p>
+            @endinteract
+
+            @interact('descripcion', $row)
+                <p class="max-w-xs truncate text-sm text-zinc-600 dark:text-zinc-400" title="{{ $row->descripcion }}">
+
+                    {{ $row->descripcion ?: 'Sin descripción' }}
+
+                </p>
+            @endinteract
+
+
+            @interact('estado', $row)
+                <flux:badge :color="$row->estado === 'publicada' ? 'green' : 'amber'" size="sm">
+
+                    {{ ucfirst($row->estado) }}
+
+                </flux:badge>
+            @endinteract
+
+
+            @interact('activo', $row)
+                <flux:badge :color="$row->activo ? 'green' : 'red'" size="sm">
+                    {{ $row->activo ? 'Activo' : 'Inactivo' }}
+                </flux:badge>
+            @endinteract
+
+            {{-- ACCIONES --}}
+            @interact('actions', $row)
+                <flux:dropdown position="bottom" align="center">
+
+                    <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" aria-label="Acciones" />
+
+                    <flux:menu>
+
+                        <flux:menu.item disabled>
+                            Acciones de la plantilla
+                        </flux:menu.item>
+
+                        <flux:menu.separator />
+
+                        {{-- EDITAR --}}
+                        <flux:menu.item icon="pencil-square" wire:click="editar({{ $row->id }})">
+
+                            Editar plantilla
+
+                        </flux:menu.item>
+
+                        <flux:menu.separator />
+
+                        {{-- ACTIVAR / DESACTIVAR --}}
+                        <flux:menu.item :icon="$row->activo ? 'no-symbol' : 'check-circle'"
+                            :variant="$row->activo ? 'danger' : 'default'"
+                            wire:click="confirmarCambioEstado({{ $row->id }})">
+
+                            {{ $row->activo ? 'Desactivar plantilla' : 'Activar plantilla' }}
+
+                        </flux:menu.item>
+
+                    </flux:menu>
+
+                </flux:dropdown>
+            @endinteract
+
+        </x-data-table>
+    </div>
+
+
 </div>
