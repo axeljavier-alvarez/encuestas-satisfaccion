@@ -3,626 +3,240 @@
 namespace App\Livewire\Administracion;
 
 use App\Models\Plantilla;
-use Illuminate\Validation\Rule;
-use Livewire\Attributes\Url;
+use App\Traits\{DataTable, Interact};
 use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Pregunta;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
+use Illuminate\Validation\Rule;
+use Flux\Flux;
+use Override;
 
 class Plantillas extends Component
 {
-    use WithPagination;
-
-    #[Url]
-    public string $buscar = '';
-
-    public bool $mostrarModalPlantilla = false;
-
+    use DataTable, Interact;
     public ?int $plantillaId = null;
-    public string $codigoPlantilla = '';
-    public string $nombrePlantilla = '';
-    public string $descripcionPlantilla = '';
+    public string $nombre = '';
+    public string $descripcion = '';
+    public string $estado = 'borrador';
 
+    // propiedades para activar o desactivar plantillas
     public ?int $plantillaEstadoId = null;
     public string $nombrePlantillaEstado = '';
-    public bool $nuevoEstadoPlantilla = false;
-    // modal de asignación
-    public bool $mostrarModalPreguntas = false;
-    // plantilla elegida
-    public ?int $plantillaSeleccionadaId = null;
+    public bool $nuevoEstadoPlantilla  = false;
 
-    // IDs en orden de selección
-    public array $preguntasSeleccionadas = [];
-    // tipo elegido de cada pregunta
-    public array $tiposRespuestaSeleccionados = [];
-    // busqueda dentro de banco
-    public string $buscarPregunta = '';
-    // modal para consultar preguntas asignadas
-    public bool $mostrarModalPreguntasAsignadas = false;
-    // id de la plantilla que se está consultando
-    public ?int $plantillaConsultaId = null;
-    // ordenar preguntas
-    public array $ordenPreguntas = [];
-
-    public bool $mostrarModalFormulario = false;
-
-    public ?Plantilla $plantillaFormulario = null;
-
-    public function crearPlantilla(): void
+    // contenido de la tabla
+    public array $headers = [
+        ['index' => 'id', 'label' => '#'],
+        ['index' => 'codigo', 'label' => 'Código'],
+        ['index' => 'nombre', 'label' => 'Nombre'],
+        ['index' => 'descripcion', 'label' => 'Descripción'],
+        ['index' => 'estado', 'label' => 'Estado'],
+        ['index' => 'activo', 'label' => 'Activo'],
+        ['index' => 'actions', 'label' => 'Acciones'],
+    ];
+    // columnas que permiten ordenamiento
+    protected function tableSortableColumns(): array
     {
-        $this->limpiarFormulario();
-        $this->mostrarModalPlantilla = true;
+        return [
+            'id',
+            'codigo',
+            'nombre',
+            'estado',
+            'activo',
+        ];
+    }
+    // Columnas disponibles para filtros
+    protected function tableFilterableColumns(): array
+    {
+        return [
+            'id',
+            'codigo',
+            'nombre',
+            'descripcion',
+            'estado',
+            'activo',
+        ];
+    }
+    /* obtener las plantillas para la tabla */
+    #[Computed]
+    public function rows()
+    {
+        $query = Plantilla::query();
+        // aplicar busqueda, filtros y ordenamiento
+        $query->filterAdvance($this->headers, [
+            'search' => $this->search,
+            'filters' => $this->processFilters(),
+            'sort' => [
+                'field' => $this->sortBy,
+                'direction' => $this->sortDirection
+            ]
+        ]);
+        // mostrar primero las plantillas activas cuando se ordena por ID
+        if ($this->sortBy === 'id') {
+            $query->reorder('activo', 'desc')
+                ->orderBy('id', $this->sortDirection);
+        }
+
+        return $query->paginate($this->getPerPage());
+    }
+    /* limpiar los datos del formulario */
+    public function resetData(): void
+    {
+        $this->reset([
+            'plantillaId',
+            'nombre',
+            'descripcion',
+            'estado'
+        ]);
+        $this->estado = 'borrador';
+        $this->resetValidation();
     }
 
-    public function editar(int $plantillaId): void
+    public function abrirNuevaPlantilla(): void
     {
-        $plantilla = Plantilla::findOrFail($plantillaId);
-
-        $this->limpiarFormulario();
-
-        $this->plantillaId = $plantilla->id;
-        $this->codigoPlantilla = $plantilla->codigo;
-        $this->nombrePlantilla = $plantilla->nombre;
-        $this->descripcionPlantilla = $plantilla->descripcion ?? '';
-
-        $this->mostrarModalPlantilla = true;
+        $this->resetData();
+        Flux::modal('nueva-plantilla')->show();
     }
 
-    public function guardarPlantilla(): void
+    public function cerrarNuevaPlantilla(): void
     {
-        $datos = $this->validate([
-            'codigoPlantilla' => [
+        $this->resetData();
+        Flux::modal('nueva-plantilla')->close();
+    }
+    /* generar codigo consecutivo para plantilla */
+    private function generarCodigo(): string
+    {
+        $codigos = Plantilla::query()
+            ->where('codigo', 'like', 'PLT-%')
+            ->pluck('codigo');
+
+        $ultimoNumero = $codigos
+            ->map(function ($codigo) {
+                if (preg_match('/^PLT-(\d+)$/', $codigo, $coincidencias)) {
+                    return (int) $coincidencias[1];
+                }
+
+                return 0;
+            })
+            ->max() ?? 0;
+
+        $siguiente = $ultimoNumero + 1;
+
+        return 'PLT-' . str_pad(
+            (string) $siguiente,
+            3,
+            '0',
+            STR_PAD_LEFT
+        );
+    }
+
+    public function guardar(): void
+    {
+        $this->validate([
+            'nombre' => [
                 'required',
                 'string',
-                'max:10',
-                Rule::unique('plantillas', 'codigo')
-                    ->ignore($this->plantillaId),
+                'max:255',
             ],
-            'nombrePlantilla' => [
-                'required',
-                'string',
-                'max:150',
-            ],
-            'descripcionPlantilla' => [
+            'descripcion' => [
                 'nullable',
                 'string',
                 'max:1000',
             ],
+            'estado' => [
+                'required',
+                Rule::in(['borrador', 'publicada']),
+            ],
         ]);
 
-        $esEdicion = $this->plantillaId !== null;
-
-        $valores = [
-            'codigo' => trim($datos['codigoPlantilla']),
-            'nombre' => trim($datos['nombrePlantilla']),
-            'descripcion' => $datos['descripcionPlantilla'] ?? null,
+        $datos = [
+            'nombre' => trim($this->nombre),
+            'descripcion' => trim($this->descripcion) ?: null,
+            'estado' => $this->estado
         ];
 
-        if ($esEdicion) {
+        if ($this->plantillaId !== null) {
+            // editar plantilla
             $plantilla = Plantilla::findOrFail($this->plantillaId);
-            $plantilla->update($valores);
+            $plantilla->update($datos);
+            $mensaje = 'Plantilla actualizada correctamente';
         } else {
-            Plantilla::create($valores);
+            // crear plantilla
+            Plantilla::create([
+                ...$datos,
+                'codigo' => $this->generarCodigo(),
+                'activo' => false
+            ]);
+            $mensaje = 'Plantilla guardada correctamente';
         }
-
-        $this->cerrarModalPlantilla();
-
-        session()->flash(
-            'mensaje',
-            $esEdicion
-                ? 'La plantilla fue actualizada correctamente.'
-                : 'La plantilla fue creada correctamente.'
+        // cerrar modal
+        Flux::modal('nueva-plantilla')->close();
+        $this->resetData();
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: $mensaje,
+            tipo: 'success'
         );
     }
 
-    public function limpiarFormulario(): void
+    public function editar(int $id): void
     {
-        $this->reset([
-            'plantillaId',
-            'codigoPlantilla',
-            'nombrePlantilla',
-            'descripcionPlantilla',
-        ]);
-
-        $this->resetValidation();
+        $this->resetData();
+        $plantilla = Plantilla::findOrFail($id);
+        $this->plantillaId = $plantilla->id;
+        $this->nombre = $plantilla->nombre;
+        $this->descripcion = $plantilla->descripcion ?? '';
+        $this->estado = $plantilla->estado;
+        // Abrir el modal
+        Flux::modal('nueva-plantilla')->show();
     }
 
-    public function cerrarModalPlantilla(): void
+    /* mostrar confirmación antes de cambiar el estado */
+    public function confirmarCambioEstado(int $id): void
     {
-        $this->mostrarModalPlantilla = false;
-        $this->limpiarFormulario();
-    }
-
-    public function updatedBuscar(): void
-    {
-        $this->resetPage();
-    }
-
-
-    // cambiar estado
-    public function confirmarCambioEstado(int $plantillaId)
-    {
-        $plantilla = Plantilla::findOrFail($plantillaId);
+        $plantilla = Plantilla::findOrFail($id);
         $this->plantillaEstadoId = $plantilla->id;
         $this->nombrePlantillaEstado = $plantilla->nombre;
-        $this->nuevoEstadoPlantilla = !$plantilla->activo;
-
-        $this->modal('confirmar-estado-plantilla')->show();
+        $this->nuevoEstadoPlantilla = ! (bool) $plantilla->activo;
+        Flux::modal('confirmar-estado-plantilla')->show();
     }
-
+    /* activar o desactivar una plantilla */
     public function cambiarEstadoPlantilla(): void
     {
-        if (!$this->plantillaEstadoId) {
+        if ($this->plantillaEstadoId === null) {
             return;
         }
+        // buscar la plantilla
         $plantilla = Plantilla::findOrFail($this->plantillaEstadoId);
-        $plantilla->activo = $this->nuevoEstadoPlantilla;
+        // invertir estado actual
+        $plantilla->activo = ! (bool) $plantilla->activo;
         $plantilla->save();
-        $mensaje = $this->nuevoEstadoPlantilla
-            ? 'La plantilla fue activada correctamente.'
-            : 'La plantilla fue desactivada correctamente.';
-        $this->modal('confirmar-estado-plantilla')->close();
-        $this->plantillaEstadoId = null;
-        $this->nombrePlantillaEstado = '';
-        session()->flash('mensaje', $mensaje);
-    }
-
-    // obtener preguntas predeterminadas
-
-    private function obtenerPredeterminadas(): array
-    {
-        return Pregunta::query()
-            ->where('activo', true)
-            ->where('es_predeterminada', true)
-            ->orderBy('id')
-            ->pluck('id')
-            ->map(fn($id) => (int) $id)
-            ->all();
-    }
-
-    // metodo para abrir el modal
-    public function verPreguntas(): void
-    {
-        // Limpiar los datos de la asignación anterior
+        $mensaje = $plantilla->activo
+            ? 'Plantilla activada correctamente'
+            : 'Plantilla desactivada correctamente';
         $this->reset([
-            'plantillaSeleccionadaId',
-            'preguntasSeleccionadas',
-            'tiposRespuestaSeleccionados',
-            'buscarPregunta',
+            'plantillaEstadoId',
+            'nombrePlantillaEstado',
+            'nuevoEstadoPlantilla',
         ]);
-
-        $this->resetValidation();
-
-        // Cargar únicamente las preguntas predeterminadas activas
-        $this->preguntasSeleccionadas = $this->obtenerPredeterminadas();
-
-        // Abrir el modal
-        $this->mostrarModalPreguntas = true;
-    }
-
-    // metodo para cerrar el modal
-    public function cerrarModalPreguntas(): void
-    {
-        $this->mostrarModalPreguntas = false;
-
-        $this->reset([
-            'plantillaSeleccionadaId',
-            'preguntasSeleccionadas',
-            'tiposRespuestaSeleccionados',
-            'buscarPregunta',
-        ]);
-
-        $this->resetValidation();
-    }
-    // consultar las preguntas asignadas a una plantilla
-    public function verPreguntasAsignadas(int $plantillaId)
-    {
-        $plantilla = Plantilla::with('preguntas')
-        ->findOrFail($plantillaId);
-        $this->plantillaConsultaId = $plantilla->id;
-        $this->ordenPreguntas =$plantilla->preguntas
-        ->sortBy('pivot.orden')
-        ->pluck('id')
-        ->values()
-        ->all();
-        $this->resetValidation();
-        $this->mostrarModalPreguntasAsignadas = true;
-    }
-    // cerrar modal de consulta
-    public function cerrarPreguntasAsignadas(): void
-    {
-        $this->mostrarModalPreguntasAsignadas = false;
-        $this->plantillaConsultaId = null;
-        $this->ordenPreguntas = [];
-        $this->resetValidation();
-    }
-    // agregar y quitar preguntas
-    public function alternarPregunta(int $preguntaId): void
-    {
-        $this->resetValidation();
-
-        $pregunta = Pregunta::query()
-            ->where('activo', true)
-            ->findOrFail($preguntaId);
-
-        // No permitir modificar predeterminadas
-        if ($pregunta->es_predeterminada) {
-            return;
-        }
-
-        // Quitar pregunta seleccionada
-        if (in_array($preguntaId, $this->preguntasSeleccionadas, true)) {
-
-            $this->preguntasSeleccionadas = array_values(
-                array_diff($this->preguntasSeleccionadas, [$preguntaId])
-            );
-
-            unset($this->tiposRespuestaSeleccionados[$preguntaId]);
-
-            return;
-        }
-
-        // Contar únicamente preguntas normales
-        $cantidadNormales = Pregunta::query()
-            ->whereIn('id', $this->preguntasSeleccionadas)
-            ->where('es_predeterminada', false)
-            ->count();
-
-        if ($cantidadNormales >= 8) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'Solamente puede seleccionar 8 preguntas adicionales.'
-            );
-
-            return;
-        }
-
-        $this->preguntasSeleccionadas[] = $preguntaId;
-    }
-    // mover preguntas
-    public function moverPregunta(int $indice, string $direccion): void
-    {
-        $total = count($this->ordenPreguntas);
-        if ($direccion === 'arriba') {
-            $nuevoIndice = $indice - 1;
-        } elseif ($direccion === 'abajo') {
-            $nuevoIndice = $indice + 1;
-        } else {
-            return;
-        }
-        // no salir de limites
-        if (
-            $indice < 0 || $indice >= $total ||
-            $nuevoIndice < 0 || $nuevoIndice >= $total
-        ) {
-            return;
-        }
-        // intercambiar posiciones del arreglo
-        [
-            $this->ordenPreguntas[$indice],
-            $this->ordenPreguntas[$nuevoIndice]
-        ] = [
-            $this->ordenPreguntas[$nuevoIndice],
-            $this->ordenPreguntas[$indice]
-        ];
-    }
-
-    // guardar nuevo orden preguntas
-    public function guardarOrdenPreguntas(): void
-    {
-        if (!$this->plantillaConsultaId) {
-            return;
-        }
-        $ids = array_map('intval', $this->ordenPreguntas);
-        if (count($ids) !== 10 || count($ids) !== count(array_unique($ids))) {
-            $this->addError(
-                'ordenPreguntas',
-                'Debe tener exactamente 10 preguntas para guardar.'
-            );
-            return;
-        }
-        $preguntas = Pregunta::whereIn('id', $ids)
-            ->where('activo', true)
-            ->get();
-        if (
-            $preguntas->count() !== 10 ||
-            $preguntas->where('es_predeterminada', true)->count() !== 2
-        ) {
-            $this->addError(
-                'ordenPreguntas',
-                'Debe seleccionar 10 preguntas activas, incluyendo exactamente 2 predeterminadas.'
-            );
-            return;
-        }
-        DB::transaction(function() use ($ids){
-            $plantilla = Plantilla::lockForUpdate()
-            ->findOrFail($this->plantillaConsultaId);
-            $datos = [];
-            foreach ($ids as $indice => $id){
-                $datos[$id] = ['orden' => $indice + 1];
-            }
-           $plantilla->preguntas()->sync($datos);
-        });
-        $this->cerrarPreguntasAsignadas();
-        session()->flash(
-            'mensaje',
-            'Las preguntas y su orden se actualizaron correctamente.'
+        // Cerrar confirmación
+        Flux::modal('confirmar-estado-plantilla')->close();
+        // Mostrar mensaje
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: $mensaje,
+            tipo: 'success'
         );
     }
-
-    public function guardarPreguntas(): void
-    {
-        $this->resetValidation();
-
-        // 1. Validar plantilla
-        $this->validate([
-            'plantillaSeleccionadaId' => [
-                'required',
-                'integer',
-                'exists:plantillas,id',
-            ],
-        ], [
-            'plantillaSeleccionadaId.required' =>
-            'Debe seleccionar una plantilla de evaluación.',
-        ]);
-
-        // 2. Obtener predeterminadas actuales
-        $predeterminadas = $this->obtenerPredeterminadas();
-
-        if (count($predeterminadas) !== 2) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'Debe haber exactamente 2 preguntas predeterminadas activas.'
-            );
-            return;
-        }
-
-        // 3. Obtener los IDs seleccionados
-        $ids = array_map('intval', $this->preguntasSeleccionadas);
-
-        if (count($ids) !== count(array_unique($ids))) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'No puede seleccionar preguntas duplicadas.'
-            );
-            return;
-        }
-
-        // 4. Comprobar que estén las dos predeterminadas
-        foreach ($predeterminadas as $id) {
-            if (!in_array($id, $ids, true)) {
-                $this->addError(
-                    'preguntasSeleccionadas',
-                    'Debe incluir las 2 preguntas predeterminadas.'
-                );
-                return;
-            }
-        }
-
-        // 5. Separar las preguntas normales
-        $normales = array_values(
-            array_diff($ids, $predeterminadas)
-        );
-
-        if (count($normales) !== 8) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'El campo preguntas seleccionadas debe contener 8 elementos.'
-            );
-            return;
-        }
-
-        // 6. Validar el total
-        if (count($ids) !== 10) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'La plantilla debe contener exactamente 10 preguntas.'
-            );
-            return;
-        }
-
-        // 7. Consultar preguntas activas y sus tipos permitidos
-        $preguntas = Pregunta::query()
-            ->with('tiposRespuesta')
-            ->where('activo', true)
-            ->whereIn('id', $ids)
-            ->get()
-            ->keyBy('id');
-
-        if ($preguntas->count() !== 10) {
-            $this->addError(
-                'preguntasSeleccionadas',
-                'Todas las preguntas deben estar activas.'
-            );
-            return;
-        }
-
-        // 8. Preparar los datos de la tabla pivote
-        $datosPivot = [];
-
-        foreach ($ids as $indice => $preguntaId) {
-
-            $pregunta = $preguntas->get($preguntaId);
-
-            $tiposDisponibles = $pregunta->tiposRespuesta
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            if (count($tiposDisponibles) === 0) {
-                $this->addError(
-                    'tiposRespuestaSeleccionados',
-                    "La pregunta #{$preguntaId} no tiene tipos de respuesta configurados."
-                );
-                return;
-            }
-
-            // Un tipo: asignación automática
-            // Varios tipos: selección obligatoria
-            $tipoSeleccionado = count($tiposDisponibles) === 1
-                ? $tiposDisponibles[0]
-                : (int) ($this->tiposRespuestaSeleccionados[$preguntaId] ?? 0);
-
-            if (!in_array($tipoSeleccionado, $tiposDisponibles, true)) {
-                $this->addError(
-                    'tiposRespuestaSeleccionados',
-                    "Seleccione un tipo de respuesta válido para la pregunta #{$preguntaId}."
-                );
-                return;
-            }
-
-            $datosPivot[$preguntaId] = [
-                'orden' => $indice + 1,
-                'tipo_respuesta_id' => $tipoSeleccionado,
-            ];
-        }
-
-        // 9. Guardar
-        DB::transaction(function () use ($datosPivot) {
-
-            $plantilla = Plantilla::query()
-                ->lockForUpdate()
-                ->findOrFail($this->plantillaSeleccionadaId);
-
-            if ($plantilla->preguntas()->exists()) {
-                throw ValidationException::withMessages([
-                    'plantillaSeleccionadaId' =>
-                    'Esta plantilla ya tiene preguntas asignadas.',
-                ]);
-            }
-
-            $plantilla->preguntas()->sync($datosPivot);
-        });
-
-        // 10. Limpiar y cerrar modal
-        $this->cerrarModalPreguntas();
-
-        session()->flash(
-            'mensaje',
-            'Las 10 preguntas fueron asignadas correctamente.'
-        );
-    }
-
-    // ver formulario borrador
-    public function verFormulario(int $plantillaId): void
-    {
-        $this->plantillaFormulario = Plantilla::with([
-            'preguntas' => function($query){
-                $query->with([
-                    'configuracionesRespuesta.tipoRespuesta',
-                    'configuracionesRespuesta.escala',
-                    'configuracionesRespuesta.opcionesRespuesta',
-                ]);
-            }
-        ])->findOrFail($plantillaId);
-
-        $this->mostrarModalFormulario = true;
-    }
-    // cerrar formulario
-    public function cerrarFormulario(): void
-    {
-        $this->mostrarModalFormulario = false;
-        $this->plantillaFormulario = null;
-    }
-
     public function render()
     {
-        $plantillas = Plantilla::query()
-            ->when($this->buscar !== '', function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery
-                        ->where('codigo', 'like', '%' . $this->buscar . '%')
-                        ->orWhere('nombre', 'like', '%' . $this->buscar . '%');
-                });
-            })
-            ->latest('id')
-            ->paginate(10);
-        $plantillasDisponibles = Plantilla::query()
-            ->doesntHave('preguntas')
-            ->orderBy('nombre')
-            ->get();
-
-        $preguntasActivas = Pregunta::query()
-            ->with(['factor', 'tema', 'tiposRespuesta'])
-            ->where('activo', true)
-            ->when($this->buscarPregunta !== '', function ($query) {
-                $query->where(
-                    'texto',
-                    'like',
-                    '%' . $this->buscarPregunta . '%'
-                );
-            })
-            ->orderByDesc('es_predeterminada')
-            ->orderBy('id')
-            ->get();
-
-        $preguntasSeleccionadasDetalle = Pregunta::query()
-            ->with('tiposRespuesta')
-            ->whereIn('id', $this->preguntasSeleccionadas)
-            ->get()
-            ->sortBy(
-                fn($pregunta) => array_search(
-                    $pregunta->id,
-                    $this->preguntasSeleccionadas
-                )
-            )
-            ->values();
-        // preguntas normales
-        $cantidadNormales = $preguntasSeleccionadasDetalle
-            ->where('es_predeterminada', false)
-            ->count();
-        // preguntas predeterminadas
-        $cantidadPredeterminadas = $preguntasSeleccionadasDetalle
-            ->where('es_predeterminada', true)
-            ->count();
-        // total seleccionadas
-        $cantidadTotal = count($this->preguntasSeleccionadas);
-        // validar tipos de respuesta
-        $tiposValidos = $preguntasSeleccionadasDetalle->every(
-            function ($pregunta) {
-                $tipos = $pregunta->tiposRespuesta;
-                if ($tipos->isEmpty()) {
-                    return false;
-                }
-                // si solo tiene 1 tipo se asisgna automaticamente
-                if ($tipos->count() === 1) {
-                    return true;
-                }
-                // Si tiene varios, debe seleccionar uno permitido
-                return $tipos->contains(
-                    'id',
-                    (int) ($this->tiposRespuestaSeleccionados[$pregunta->id] ?? 0)
-                );
-            }
-        );
-        // plantilla seleccionada para consultar sus preguntas
-        $plantillaConsulta = $this->plantillaConsultaId
-            ? Plantilla::with([
-                'preguntas' => function ($query) {
-                    $query->with(['factor', 'tema', 'tiposRespuesta'])
-                        ->orderByPivot('orden');
-                }
-            ])->find($this->plantillaConsultaId)
-            : null;
+        $estadisticas = Plantilla::query()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) as activas')
+            ->selectRaw('SUM(CASE WHEN activo = 0 THEN 1 ELSE 0 END) as inactivas')
+            ->first();
 
         return view('livewire.administracion.plantillas', [
-            'plantillas' => $plantillas,
-            'totalPlantillas' => Plantilla::count(),
-            'totalActivas' => Plantilla::where('activo', true)->count(),
-            'totalInactivas' => Plantilla::where('activo', false)->count(),
-            'plantillasDisponibles' => $plantillasDisponibles,
-            'preguntasActivas' => $preguntasActivas,
-            'preguntasSeleccionadasDetalle' => $preguntasSeleccionadasDetalle,
-            // contadores
-            'cantidadNormales' => $cantidadNormales,
-            'cantidadPredeterminadas' => $cantidadPredeterminadas,
-            'cantidadTotal' => $cantidadTotal,
-            // validacion visual del botón
-            'tiposValidos' => $tiposValidos,
-            'plantillaConsulta' => $plantillaConsulta,
-
+            'estadisticas' => $estadisticas
         ]);
     }
 }
