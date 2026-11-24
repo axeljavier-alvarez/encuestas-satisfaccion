@@ -9,8 +9,6 @@ use Livewire\Attributes\Computed;
 use Illuminate\Validation\Rule;
 use Flux\Flux;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
-
 
 class Plantillas extends Component
 {
@@ -19,10 +17,18 @@ class Plantillas extends Component
     public string $nombre = '';
     public string $descripcion = '';
 
-    // propiedades para activar o desactivar plantillas
+    // propiedades para cambiar el estado de la plantilla
     public ?int $plantillaEstadoId = null;
     public string $nombrePlantillaEstado = '';
-    public bool $nuevoEstadoPlantilla  = false;
+    public string $estadoActualPlantilla = '';
+    public string $nuevoEstadoPlantilla = '';
+
+    // estados disponibles
+    public array $estadosDisponibles = [
+        'borrador' => 'Borrador',
+        'publicada' => 'Publicada',
+        'inactiva' => 'Inactiva',
+    ];
 
     // asignador seleccionado para la plantilla
     public ?int $asignadorId = null;
@@ -33,8 +39,8 @@ class Plantillas extends Component
         ['index' => 'codigo', 'label' => 'Código'],
         ['index' => 'nombre', 'label' => 'Nombre'],
         ['index' => 'descripcion', 'label' => 'Descripción'],
+        ['index' => 'usuarios.name', 'label' => 'Asignador'],
         ['index' => 'estado', 'label' => 'Estado'],
-        ['index' => 'activo', 'label' => 'Activo'],
         ['index' => 'actions', 'label' => 'Acciones'],
     ];
     // columnas que permiten ordenamiento
@@ -45,7 +51,6 @@ class Plantillas extends Component
             'codigo',
             'nombre',
             'estado',
-            'activo',
         ];
     }
     // Columnas disponibles para filtros
@@ -57,31 +62,41 @@ class Plantillas extends Component
             'nombre',
             'descripcion',
             'estado',
-            'activo',
         ];
     }
     /* obtener las plantillas para la tabla */
     #[Computed]
     public function rows()
     {
-        $query = Plantilla::query();
-        // aplicar busqueda, filtros y ordenamiento
+        $query = Plantilla::query()->with('usuarios');
+
+        // aplicar búsqueda, filtros y ordenamiento
         $query->filterAdvance($this->headers, [
             'search' => $this->search,
             'filters' => $this->processFilters(),
             'sort' => [
                 'field' => $this->sortBy,
-                'direction' => $this->sortDirection
-            ]
+                'direction' => $this->sortDirection,
+            ],
         ]);
-        // mostrar primero las plantillas activas cuando se ordena por ID
+
+        // priorizar las plantillas publicadas
         if ($this->sortBy === 'id') {
-            $query->reorder('activo', 'desc')
+            $query->reorder()
+                ->orderByRaw("
+                CASE
+                    WHEN estado = 'publicada' THEN 1
+                    WHEN estado = 'borrador' THEN 2
+                    WHEN estado = 'inactiva' THEN 3
+                    ELSE 4
+                END
+            ")
                 ->orderBy('id', $this->sortDirection);
         }
 
         return $query->paginate($this->getPerPage());
     }
+
     /* limpiar los datos del formulario */
     public function resetData(): void
     {
@@ -184,7 +199,6 @@ class Plantillas extends Component
                     ...$datos,
                     'codigo' => $this->generarCodigo(),
                     'estado' => 'borrador',
-                    'activo' => false
                 ]);
                 $mensaje = 'Plantilla guardada correctamente';
             }
@@ -206,62 +220,135 @@ class Plantillas extends Component
 
     public function editar(int $id): void
     {
+        // limpiar datos anteriores
         $this->resetData();
-        $plantilla = Plantilla::findOrFail($id);
+        $plantilla = Plantilla::query()
+            ->with('usuarios')
+            ->findOrFail($id);
+        // cargar datos formulario
         $this->plantillaId = $plantilla->id;
         $this->nombre = $plantilla->nombre;
         $this->descripcion = $plantilla->descripcion ?? '';
+        // recuperar el asignador asociado
+        $this->asignadorId = $plantilla->usuarios
+            ->firstWhere('rol', 'asignador')
+            ?->id;
         // Abrir el modal
         Flux::modal('nueva-plantilla')->show();
     }
 
-    /* mostrar confirmación antes de cambiar el estado */
+    /* abrir modal para cambiar el estado */
     public function confirmarCambioEstado(int $id): void
     {
+        $this->resetValidation();
+
+        // buscar la plantilla seleccionada
         $plantilla = Plantilla::findOrFail($id);
+
+        // recuperar los datos de la plantilla
         $this->plantillaEstadoId = $plantilla->id;
         $this->nombrePlantillaEstado = $plantilla->nombre;
-        $this->nuevoEstadoPlantilla = ! (bool) $plantilla->activo;
-        Flux::modal('confirmar-estado-plantilla')->show();
+        $this->estadoActualPlantilla = $plantilla->estado;
+
+        // seleccionar inicialmente el estado actual
+        $this->nuevoEstadoPlantilla = $plantilla->estado;
+
+        // abrir modal
+        Flux::modal('cambiar-estado-plantilla')->show();
     }
-    /* activar o desactivar una plantilla */
+    /* actualizar el estado de la plantilla */
     public function cambiarEstadoPlantilla(): void
     {
         if ($this->plantillaEstadoId === null) {
             return;
         }
-        // buscar la plantilla
-        $plantilla = Plantilla::findOrFail($this->plantillaEstadoId);
-        // invertir estado actual
-        $plantilla->activo = ! (bool) $plantilla->activo;
-        $plantilla->save();
-        $mensaje = $plantilla->activo
-            ? 'Plantilla activada correctamente'
-            : 'Plantilla desactivada correctamente';
-        $this->reset([
-            'plantillaEstadoId',
-            'nombrePlantillaEstado',
-            'nuevoEstadoPlantilla',
+
+        // validar el estado seleccionado
+        $this->validate([
+            'nuevoEstadoPlantilla' => [
+                'required',
+                Rule::in([
+                    'borrador',
+                    'publicada',
+                    'inactiva',
+                ]),
+            ],
+        ], [], [
+            'nuevoEstadoPlantilla' => 'estado de la plantilla',
         ]);
-        // Cerrar confirmación
-        Flux::modal('confirmar-estado-plantilla')->close();
-        // Mostrar mensaje
+
+        // buscar la plantilla
+        $plantilla = Plantilla::findOrFail(
+            $this->plantillaEstadoId
+        );
+
+        // verificar si realmente cambió el estado
+        if ($plantilla->estado === $this->nuevoEstadoPlantilla) {
+            $this->addError(
+                'nuevoEstadoPlantilla',
+                'Seleccione un estado diferente al actual.'
+            );
+
+            return;
+        }
+
+        // actualizar el estado
+        $plantilla->update([
+            'estado' => $this->nuevoEstadoPlantilla,
+        ]);
+
+        // cerrar modal y limpiar propiedades
+        $this->cerrarCambioEstado();
+
+        // mostrar mensaje
         $this->dispatch(
             'mostrar-mensaje',
-            mensaje: $mensaje,
+            mensaje: 'Estado de la plantilla actualizado correctamente',
             tipo: 'success'
         );
     }
+    /* cerrar modal de cambio de estado */
+    public function cerrarCambioEstado(): void
+    {
+        $this->reset([
+            'plantillaEstadoId',
+            'nombrePlantillaEstado',
+            'estadoActualPlantilla',
+            'nuevoEstadoPlantilla',
+        ]);
+
+        $this->resetValidation();
+
+        Flux::modal('cambiar-estado-plantilla')->close();
+    }
+
     public function render()
     {
         $estadisticas = Plantilla::query()
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) as activas')
-            ->selectRaw('SUM(CASE WHEN activo = 0 THEN 1 ELSE 0 END) as inactivas')
+            ->selectRaw("
+            SUM(CASE WHEN estado = 'borrador' THEN 1 ELSE 0 END)
+            as borradores
+        ")
+            ->selectRaw("
+            SUM(CASE WHEN estado = 'publicada' THEN 1 ELSE 0 END)
+            as publicadas
+        ")
+            ->selectRaw("
+            SUM(CASE WHEN estado = 'inactiva' THEN 1 ELSE 0 END)
+            as inactivas
+        ")
             ->first();
+        // obtener asignadores activos
+        $asignadores = User::query()
+            ->where('rol', 'asignador')
+            ->where('activo', true)
+            ->orderBy('name')
+            ->get();
 
         return view('livewire.administracion.plantillas', [
-            'estadisticas' => $estadisticas
+            'estadisticas' => $estadisticas,
+            'asignadores' => $asignadores
         ]);
     }
 }
