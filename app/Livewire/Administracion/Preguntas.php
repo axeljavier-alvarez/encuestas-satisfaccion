@@ -2,13 +2,12 @@
 
 namespace App\Livewire\Administracion;
 
-use App\Models\{Factor, Pregunta, Tema, TipoRespuesta, Escala, PreguntaTipoRespuesta};
+use App\Models\{Factor, Pregunta, Tema, TipoRespuesta, Escala, PreguntaTipoRespuesta, TipoExperiencia};
 use App\Traits\{DataTable, Interact};
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use App\Models\OpcionRespuesta;
 use Flux\Flux;
 
 class Preguntas extends Component
@@ -52,6 +51,18 @@ class Preguntas extends Component
 
     // Indica si la edición modifica los tipos de respuesta
     public bool $cambianTiposRespuesta = false;
+
+    // Configuración de tipos de experiencia
+    public ?int $preguntaExperienciaId = null;
+
+    public string $codigoPreguntaExperiencia = '';
+
+    public string $textoPreguntaExperiencia = '';
+
+    public array $tiposExperienciaSeleccionados = [];
+
+    public array $variantesExperiencia = [];
+
 
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
@@ -1106,6 +1117,141 @@ class Preguntas extends Component
         ];
     }
 
+    // METODO PARA CONFIGURAR TIPOS EXPERIENCIA POR PREGUNTA
+    public function configurarTiposExperiencia(int $id): void
+    {
+        if ($this->factorSeleccionado === null) {
+            return;
+        }
+        $this->reset([
+            'preguntaExperienciaId',
+            'codigoPreguntaExperiencia',
+            'textoPreguntaExperiencia',
+            'tiposExperienciaSeleccionados',
+            'variantesExperiencia',
+        ]);
+        $this->resetValidation();
+        // obtener pregunta con sus tipos de experiencia
+        $pregunta = Pregunta::query()
+            ->with('tiposExperiencia')
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($id);
+        // cargar información de la pregunta
+        $this->preguntaExperienciaId = $pregunta->id;
+        $this->codigoPreguntaExperiencia = $pregunta->codigo;
+        $this->textoPreguntaExperiencia = $pregunta->texto;
+        // recuperar tipos de experiencia seleccionados
+        $this->tiposExperienciaSeleccionados = $pregunta
+            ->tiposExperiencia
+            ->pluck('id')
+            ->map(fn($id) => (string) $id)
+            ->all();
+        // recuperar textos variantes existentes
+        foreach ($pregunta->tiposExperiencia as $tipo) {
+
+            $this->variantesExperiencia[$tipo->id] =
+                $tipo->pivot->texto ?? $pregunta->texto;
+        }
+        Flux::modal('configurar-tipos-experiencia')->show();
+    }
+
+    public function updatedTiposExperienciaSeleccionados(): void
+    {
+        foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
+            if (! array_key_exists(
+                $tipoId,
+                $this->variantesExperiencia
+            )) {
+                $this->variantesExperiencia[$tipoId] =
+                    $this->textoPreguntaExperiencia;
+            }
+        }
+        $this->resetValidation();
+    }
+
+    public function guardarTiposExperiencia(): void
+    {
+        if (
+            $this->preguntaExperienciaId === null ||
+            $this->factorSeleccionado === null
+        ) {
+            return;
+        }
+        // obtener pregunta correspondiente
+        $pregunta = Pregunta::query()
+            ->where('factor_id', $this->factorSeleccionado)
+            ->findOrFail($this->preguntaExperienciaId);
+
+        $this->validate([
+            'tiposExperienciaSeleccionados' => [
+                'array',
+            ],
+            'tiposExperienciaSeleccionados.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('tipos_experiencia', 'id')
+            ],
+            'variantesExperiencia' => [
+                'array'
+            ],
+
+        ], [
+            'tiposExperienciaSeleccionados.*.exists' =>
+            'El tipo de experiencia seleccionado no existe.',
+        ]);
+
+        // validacion para tipos seleccionados
+        $reglas = [];
+        foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
+            $reglas["variantesExperiencia.$tipoId"] = [
+                'required',
+                'string',
+                'max:1000'
+            ];
+        }
+        // validar textos de variantes
+        if (! empty($reglas)) {
+            $this->validate($reglas, [
+                'variantesExperiencia.*.required' =>
+                'Ingrese el texto de la variante',
+                'variantesExperiencia.*.max' =>
+                'El texto no puede superar los 1000 caracteres'
+            ]);
+        }
+        $datos = [];
+        foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
+            $datos[(int) $tipoId] = [
+                'texto' => trim(
+                    $this->variantesExperiencia[$tipoId]
+                ),
+            ];
+        }
+        DB::transaction(function () use ($pregunta, $datos) {
+            $pregunta->tiposExperiencia()->sync($datos);
+        });
+        $this->cerrarTiposExperiencia();
+        // Mostrar mensaje de confirmación
+        $this->dispatch(
+            'mostrar-mensaje',
+            mensaje: 'Tipos de experiencia configurados correctamente',
+            tipo: 'success'
+        );
+    }
+
+    public function cerrarTiposExperiencia(): void
+    {
+        $this->reset([
+            'preguntaExperienciaId',
+            'codigoPreguntaExperiencia',
+            'textoPreguntaExperiencia',
+            'tiposExperienciaSeleccionados',
+            'variantesExperiencia',
+        ]);
+        $this->resetValidation();
+        Flux::modal('configurar-tipos-experiencia')->close();
+    }
+
     public function render()
     {
         $factores = Factor::query()
@@ -1137,6 +1283,10 @@ class Preguntas extends Component
             ->get();
 
         $escalaActual = $escalas->firstWhere('id', (int) $this->escalaSeleccionada);
+
+        $tiposExperiencia = TipoExperiencia::query()
+        ->orderBy('id')
+        ->get();
 
 
         return view('livewire.administracion.preguntas', [
