@@ -55,13 +55,7 @@ class Preguntas extends Component
     // Configuración de tipos de experiencia
     public ?int $preguntaExperienciaId = null;
 
-    public string $codigoPreguntaExperiencia = '';
-
-    public string $textoPreguntaExperiencia = '';
-
     public array $tiposExperienciaSeleccionados = [];
-
-    public array $variantesExperiencia = [];
 
 
     public array $headers = [
@@ -74,7 +68,6 @@ class Preguntas extends Component
         ['index' => 'activo', 'label' => 'Estado'],
         ['index' => 'actions', 'label' => 'Acciones']
     ];
-
     public function mount(?string $slug = null): void
     {
         if ($slug !== null) {
@@ -82,7 +75,6 @@ class Preguntas extends Component
             $this->factorSeleccionado = $factor->id;
         }
     }
-
     // Columnas permitidas para ordenar
     protected function tableSortableColumns(): array
     {
@@ -94,7 +86,6 @@ class Preguntas extends Component
             'activo',
         ];
     }
-
     // Columnas permitidas para filtrar
     protected function tableFilterableColumns(): array
     {
@@ -107,7 +98,6 @@ class Preguntas extends Component
             'activo',
         ];
     }
-
     public function seleccionarFactor(int $factorId): void
     {
         $factor = Factor::findOrFail($factorId);
@@ -118,7 +108,6 @@ class Preguntas extends Component
             navigate: true
         );
     }
-
     public function regresarFactores(): void
     {
         $this->redirectRoute(
@@ -126,8 +115,6 @@ class Preguntas extends Component
             navigate: true
         );
     }
-
-
     #[Computed]
     public function rows()
     {
@@ -161,8 +148,6 @@ class Preguntas extends Component
 
         return $query->paginate($this->getPerPage());
     }
-
-
     public function resetData(): void
     {
         $this->reset([
@@ -1123,50 +1108,30 @@ class Preguntas extends Component
         if ($this->factorSeleccionado === null) {
             return;
         }
+
         $this->reset([
             'preguntaExperienciaId',
-            'codigoPreguntaExperiencia',
-            'textoPreguntaExperiencia',
             'tiposExperienciaSeleccionados',
-            'variantesExperiencia',
         ]);
+
         $this->resetValidation();
-        // obtener pregunta con sus tipos de experiencia
+
+        // Obtener pregunta con sus tipos de experiencia
         $pregunta = Pregunta::query()
             ->with('tiposExperiencia')
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($id);
-        // cargar información de la pregunta
+
         $this->preguntaExperienciaId = $pregunta->id;
-        $this->codigoPreguntaExperiencia = $pregunta->codigo;
-        $this->textoPreguntaExperiencia = $pregunta->texto;
-        // recuperar tipos de experiencia seleccionados
+
+        // Recuperar los tipos seleccionados
         $this->tiposExperienciaSeleccionados = $pregunta
             ->tiposExperiencia
             ->pluck('id')
             ->map(fn($id) => (string) $id)
             ->all();
-        // recuperar textos variantes existentes
-        foreach ($pregunta->tiposExperiencia as $tipo) {
 
-            $this->variantesExperiencia[$tipo->id] =
-                $tipo->pivot->texto ?? $pregunta->texto;
-        }
         Flux::modal('configurar-tipos-experiencia')->show();
-    }
-
-    public function updatedTiposExperienciaSeleccionados(): void
-    {
-        foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
-            if (! array_key_exists(
-                $tipoId,
-                $this->variantesExperiencia
-            )) {
-                $this->variantesExperiencia[$tipoId] =
-                    $this->textoPreguntaExperiencia;
-            }
-        }
-        $this->resetValidation();
     }
 
     public function guardarTiposExperiencia(): void
@@ -1177,60 +1142,55 @@ class Preguntas extends Component
         ) {
             return;
         }
-        // obtener pregunta correspondiente
+
+        // Obtener pregunta con sus tipos de experiencia
         $pregunta = Pregunta::query()
+            ->with('tiposExperiencia')
             ->where('factor_id', $this->factorSeleccionado)
             ->findOrFail($this->preguntaExperienciaId);
 
+        // Validar los tipos seleccionados
         $this->validate([
             'tiposExperienciaSeleccionados' => [
                 'array',
             ],
+
             'tiposExperienciaSeleccionados.*' => [
                 'required',
                 'integer',
                 'distinct',
-                Rule::exists('tipos_experiencia', 'id')
+                Rule::exists('tipos_experiencia', 'id'),
             ],
-            'variantesExperiencia' => [
-                'array'
-            ],
-
         ], [
             'tiposExperienciaSeleccionados.*.exists' =>
             'El tipo de experiencia seleccionado no existe.',
         ]);
 
-        // validacion para tipos seleccionados
-        $reglas = [];
-        foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
-            $reglas["variantesExperiencia.$tipoId"] = [
-                'required',
-                'string',
-                'max:1000'
-            ];
-        }
-        // validar textos de variantes
-        if (! empty($reglas)) {
-            $this->validate($reglas, [
-                'variantesExperiencia.*.required' =>
-                'Ingrese el texto de la variante',
-                'variantesExperiencia.*.max' =>
-                'El texto no puede superar los 1000 caracteres'
-            ]);
-        }
+        // Recuperar las variantes existentes
+        $variantesExistentes = $pregunta->tiposExperiencia
+            ->keyBy('id');
+
+        // Preparar asociaciones
         $datos = [];
+
         foreach ($this->tiposExperienciaSeleccionados as $tipoId) {
+
+            $tipoExistente = $variantesExistentes->get((int) $tipoId);
+
             $datos[(int) $tipoId] = [
-                'texto' => trim(
-                    $this->variantesExperiencia[$tipoId]
-                ),
+                'texto' => $tipoExistente?->pivot->texto
+                    ?? $pregunta->texto,
             ];
         }
+
+        // Guardar asociaciones
         DB::transaction(function () use ($pregunta, $datos) {
             $pregunta->tiposExperiencia()->sync($datos);
         });
+
+        // Cerrar modal
         $this->cerrarTiposExperiencia();
+
         // Mostrar mensaje de confirmación
         $this->dispatch(
             'mostrar-mensaje',
@@ -1243,12 +1203,11 @@ class Preguntas extends Component
     {
         $this->reset([
             'preguntaExperienciaId',
-            'codigoPreguntaExperiencia',
-            'textoPreguntaExperiencia',
             'tiposExperienciaSeleccionados',
-            'variantesExperiencia',
         ]);
+
         $this->resetValidation();
+
         Flux::modal('configurar-tipos-experiencia')->close();
     }
 
@@ -1285,8 +1244,8 @@ class Preguntas extends Component
         $escalaActual = $escalas->firstWhere('id', (int) $this->escalaSeleccionada);
 
         $tiposExperiencia = TipoExperiencia::query()
-        ->orderBy('id')
-        ->get();
+            ->orderBy('id')
+            ->get();
 
 
         return view('livewire.administracion.preguntas', [
@@ -1297,7 +1256,8 @@ class Preguntas extends Component
             'totalPreguntas' => $factores->sum('preguntas_count'),
             'tiposRespuesta' => $tiposRespuesta,
             'escalas' => $escalas,
-            'escalaActual' => $escalaActual
+            'escalaActual' => $escalaActual,
+            'tiposExperiencia' => $tiposExperiencia
         ]);
     }
 }

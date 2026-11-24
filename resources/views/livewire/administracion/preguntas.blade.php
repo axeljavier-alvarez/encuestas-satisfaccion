@@ -767,7 +767,97 @@
 
         </flux:modal>
 
+        {{-- MODAL CONFIGURAR TIPOS DE EXPERIENCIA --}}
+        <flux:modal name="configurar-tipos-experiencia" class="w-full max-w-2xl">
+            <div class="space-y-6">
 
+                {{-- ENCABEZADO --}}
+                <div>
+
+                    <flux:heading size="xl">
+                        Configurar tipos de experiencia
+                    </flux:heading>
+
+                    <flux:text class="mt-2">
+                        Seleccione los tipos de experiencia asociados
+                        a la pregunta y configure sus variantes.
+                    </flux:text>
+
+                </div>
+
+                {{-- FORMULARIO --}}
+                <form wire:submit="guardarTiposExperiencia" class="space-y-5">
+
+                    {{-- TIPOS DE EXPERIENCIA --}}
+                    <div>
+
+                        <flux:heading size="sm">
+                            Tipos de experiencia
+                        </flux:heading>
+
+                        <flux:text class="mt-1 text-sm">
+                            Puede seleccionar uno, varios o ninguno.
+                        </flux:text>
+
+                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+
+                            @foreach ($tiposExperiencia as $tipo)
+                                <label wire:key="tipo-experiencia-{{ $tipo->id }}" @class([
+                                    'flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors',
+                                
+                                    'border-blue-300 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10' => in_array(
+                                        (string) $tipo->id,
+                                        $tiposExperienciaSeleccionados),
+                                
+                                    'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800' => !in_array(
+                                        (string) $tipo->id,
+                                        $tiposExperienciaSeleccionados),
+                                ])>
+
+                                    <input type="checkbox" wire:model.live="tiposExperienciaSeleccionados"
+                                        value="{{ $tipo->id }}"
+                                        class="size-4 rounded border-zinc-300
+                                       text-blue-600 focus:ring-blue-500
+                                       dark:border-zinc-600" />
+
+                                    <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                        {{ $tipo->nombre }}
+                                    </span>
+
+                                </label>
+                            @endforeach
+
+                        </div>
+
+                        @error('tiposExperienciaSeleccionados.*')
+                            <p class="mt-2 text-sm text-red-600">
+                                {{ $message }}
+                            </p>
+                        @enderror
+
+                    </div>
+                    {{-- BOTONES --}}
+                    <div
+                        class="flex flex-col-reverse gap-3 border-t
+                       border-zinc-200 pt-5 sm:flex-row
+                       sm:justify-end dark:border-zinc-700">
+
+                        <flux:button type="button" variant="ghost" wire:click="cerrarTiposExperiencia">
+                            Cancelar
+                        </flux:button>
+
+                        <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
+                            wire:target="guardarTiposExperiencia">
+                            Guardar configuración
+                        </flux:button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </flux:modal>
 
 
         <x-confirmacion nombre="confirmar-estado-pregunta" :titulo="$nuevoEstadoPregunta ? 'Activar pregunta' : 'Desactivar pregunta'" :mensaje="$nuevoEstadoPregunta
@@ -779,11 +869,11 @@
 
         <x-confirmacion nombre="confirmar-edicion-pregunta" titulo="Confirmar edición de pregunta" :mensaje="$preguntaEdicionActiva && $cambianTiposRespuesta
             ? '<strong>¿Está seguro de que desea guardar los cambios?</strong><br>
-                                   Esta pregunta se encuentra activa. Al modificar sus tipos de respuesta,
-                                   se desactivará automáticamente y deberá revisar su configuración
-                                   antes de volver a activarla.'
+                                                                                                                   Esta pregunta se encuentra activa. Al modificar sus tipos de respuesta,
+                                                                                                                   se desactivará automáticamente y deberá revisar su configuración
+                                                                                                                   antes de volver a activarla.'
             : '<strong>¿Está seguro de que desea guardar los cambios de esta pregunta?</strong><br>
-                                   Los cambios realizados se actualizarán en el sistema.'"
+                                                                                                                   Los cambios realizados se actualizarán en el sistema.'"
             texto-confirmar="Sí, guardar cambios"
             :color="$preguntaEdicionActiva && $cambianTiposRespuesta ? 'danger' : 'primary'" accion="guardar" />
 
@@ -889,25 +979,36 @@
 
                             <flux:menu.separator />
 
+                            {{-- EDITAR PREGUNTA --}}
                             <flux:menu.item icon="pencil-square" wire:click="editar({{ $row->id }})">
                                 Editar pregunta
                             </flux:menu.item>
 
-                            {{-- configurar respuestas --}}
+                            {{-- CONFIGURAR RESPUESTAS --}}
                             @if ($row->tiposRespuesta->contains(fn($tipo) => $tipo->nombre !== 'Texto abierto'))
                                 <flux:menu.item icon="adjustments-horizontal"
                                     wire:click="configurarRespuestas({{ $row->id }})">
                                     Configurar respuestas
                                 </flux:menu.item>
                             @endif
-                            <flux:menu.separator />
+
+                            {{-- CONFIGURAR TIPOS DE EXPERIENCIA --}}
+                            <flux:menu.item icon="squares-2x2"
+                                wire:click="configurarTiposExperiencia({{ $row->id }})">
+                                Configurar tipos de experiencia
+                            </flux:menu.item>
+
+                            {{-- CAMBIAR ESTADO --}}
                             @if (!$row->es_predeterminada)
+                                <flux:menu.separator />
+
                                 <flux:menu.item :icon="$row->activo ? 'no-symbol' : 'check-circle'"
                                     :variant="$row->activo ? 'danger' : 'default'"
                                     wire:click="confirmarCambioEstado({{ $row->id }})">
                                     {{ $row->activo ? 'Desactivar pregunta' : 'Activar pregunta' }}
                                 </flux:menu.item>
                             @endif
+
                         </flux:menu>
 
                     </flux:dropdown>
