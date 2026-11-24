@@ -17,7 +17,7 @@
         </div>
 
         {{-- INDICADORES --}}
-        <div class="indicadores-preguntas">
+        <div class="indicadores-preguntas cuatro-indicadores">
 
             {{-- TOTAL DE PLANTILLAS --}}
             <div

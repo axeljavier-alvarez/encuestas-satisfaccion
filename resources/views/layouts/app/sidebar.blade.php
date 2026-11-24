@@ -355,6 +355,35 @@
             padding-right: 24px !important;
         }
 
+
+        /* Variante para cuatro indicadores */
+        .indicadores-preguntas.cuatro-indicadores {
+            grid-template-columns: repeat(4, 150px);
+        }
+
+        /* Pantallas medianas */
+        @media (max-width: 1280px) {
+
+            .encabezado-preguntas:has(.cuatro-indicadores) {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 20px;
+            }
+
+            .indicadores-preguntas.cuatro-indicadores {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                width: 100%;
+            }
+        }
+
+        /* Teléfonos y pantallas pequeñas */
+        @media (max-width: 640px) {
+
+            .indicadores-preguntas.cuatro-indicadores {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 
