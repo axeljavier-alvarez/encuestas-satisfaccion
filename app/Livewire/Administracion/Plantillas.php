@@ -283,14 +283,14 @@ class Plantillas extends Component
         );
 
         // verificar si realmente cambió el estado
-        if ($plantilla->estado === $this->nuevoEstadoPlantilla) {
-            $this->addError(
-                'nuevoEstadoPlantilla',
-                'Seleccione un estado diferente al actual.'
-            );
+        // if ($plantilla->estado === $this->nuevoEstadoPlantilla) {
+        //     $this->addError(
+        //         'nuevoEstadoPlantilla',
+        //         'Seleccione un estado diferente al actual.'
+        //     );
 
-            return;
-        }
+        //     return;
+        // }
 
         // actualizar el estado
         $plantilla->update([

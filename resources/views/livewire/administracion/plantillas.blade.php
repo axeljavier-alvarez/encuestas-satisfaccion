@@ -270,7 +270,6 @@
                     </flux:button>
 
                     <flux:button type="submit" variant="primary" icon="check"
-                        :disabled="$nuevoEstadoPlantilla === $estadoActualPlantilla" wire:loading.attr="disabled"
                         wire:target="cambiarEstadoPlantilla">
 
                         Guardar estado

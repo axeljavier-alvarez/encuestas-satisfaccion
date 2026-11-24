@@ -15,8 +15,17 @@ class Plantilla extends Model
         'codigo',
         'nombre',
         'descripcion',
+        'tipo_experiencia_id',
         'estado',
     ];
+
+    public function tipoExperiencia()
+    {
+        return $this->belongsTo(
+            TipoExperiencia::class,
+            'tipo_experiencia_id'
+        );
+    }
 
     public function usuarios()
     {
