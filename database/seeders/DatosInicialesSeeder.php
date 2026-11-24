@@ -13,7 +13,6 @@ class DatosInicialesSeeder extends Seeder
         $this->call([EscalasSeeder::class]);
 
         DB::transaction(function (): void {
-            $this->crearPlantillas();
             $this->crearBancoPreguntas();
             $this->activarPreguntasPredeterminadasPorId();
         });
@@ -1486,25 +1485,4 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
             ->update(['activo' => true, 'es_predeterminada' => true]);
     }
 
-    private function crearPlantillas(): void
-    {
-        $plantillas = [
-            ['codigo' => 'GER', 'nombre' => 'Plantilla para gerentes', 'descripcion' => 'Evaluación del desempeño para puestos gerenciales.'],
-            ['codigo' => 'MM', 'nombre' => 'Plantilla para mandos medios', 'descripcion' => 'Evaluación del desempeño para jefaturas y mandos medios.'],
-            ['codigo' => 'OPE', 'nombre' => 'Plantilla para personal operativo', 'descripcion' => 'Evaluación del desempeño para personal operativo.'],
-        ];
-
-        foreach ($plantillas as $plantilla) {
-            DB::table('plantillas')->updateOrInsert(
-                ['codigo' => $plantilla['codigo']],
-                fn (bool $exists) => [
-                    'nombre' => $plantilla['nombre'],
-                    'descripcion' => $plantilla['descripcion'],
-                    'estado' => 'borrador',
-                    'activo' => true,
-                    'updated_at' => now(),
-                ] + ($exists ? [] : ['created_at' => now()])
-            );
-        }
-    }
 }

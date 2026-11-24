@@ -19,7 +19,8 @@ class DatabaseSeeder extends Seeder
             EscalasSeeder::class,
             DatosInicialesSeeder::class,
             DatosOrganizacionalesSeeder::class,
-            TiposRespuestaSeeder::class
+            TiposRespuestaSeeder::class,
+            PlantillaSeeder::class
         ]);
 
     }
