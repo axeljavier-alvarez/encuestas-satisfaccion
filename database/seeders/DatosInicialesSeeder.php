@@ -1,23 +1,22 @@
 <?php
-
 namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-
 class DatosInicialesSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([EscalasSeeder::class]);
-
+        $this->call([
+            EscalasSeeder::class,
+            TipoExperienciaSeeder::class,
+        ]);
         DB::transaction(function (): void {
             $this->crearBancoPreguntas();
+            $this->crearVariantesTransversales();
             $this->activarPreguntasPredeterminadasPorId();
         });
     }
-
     private function crearBancoPreguntas(): void
     {
         // Datos originales del banco, adaptados a tipos múltiples por pregunta.
@@ -1374,16 +1373,13 @@ class DatosInicialesSeeder extends Seeder
   }
 ]
 JSON, true, 512, JSON_THROW_ON_ERROR);
-
         foreach ($banco as $fila) {
             $ahora = now();
-
             DB::table('factores')->updateOrInsert(
                 ['nombre' => $fila['factor']],
                 fn (bool $exists) => ['activo' => true, 'updated_at' => $ahora] + ($exists ? [] : ['created_at' => $ahora])
             );
             $factorId = DB::table('factores')->where('nombre', $fila['factor'])->value('id');
-
             // El tema pertenece al factor; identificarlo por ambos campos.
             DB::table('temas')->updateOrInsert(
                 ['factor_id' => $factorId, 'nombre' => $fila['tema']],
@@ -1393,11 +1389,9 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                 ->where('factor_id', $factorId)
                 ->where('nombre', $fila['tema'])
                 ->value('id');
-
             if ($temaId === null) {
                 throw new RuntimeException("No se encontró el tema {$fila['tema']} del factor {$fila['factor']}.");
             }
-
             DB::table('preguntas')->updateOrInsert(
                 ['codigo' => $fila['codigo']],
                 fn (bool $exists) => [
@@ -1413,7 +1407,6 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                 ] + ($exists ? [] : ['created_at' => $ahora])
             );
             $preguntaId = DB::table('preguntas')->where('codigo', $fila['codigo'])->value('id');
-
             foreach ($fila['tipos'] as $configuracion) {
                 $nombreTipo = $configuracion['nombre'];
                 DB::table('tipos_respuesta')->updateOrInsert(
@@ -1421,7 +1414,6 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                     fn (bool $exists) => ['updated_at' => $ahora] + ($exists ? [] : ['created_at' => $ahora])
                 );
                 $tipoId = DB::table('tipos_respuesta')->where('nombre', $nombreTipo)->value('id');
-
                 $escalaId = null;
                 if ($nombreTipo === 'Escala de 0 a 10') {
                     $nombreEscala = $fila['codigo'] === 'REC-01'
@@ -1432,7 +1424,6 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                         throw new RuntimeException("No existe la escala: {$nombreEscala}.");
                     }
                 }
-
                 DB::table('pregunta_tipo_respuesta')->updateOrInsert(
                     ['pregunta_id' => $preguntaId, 'tipo_respuesta_id' => $tipoId],
                     fn (bool $exists) => ['escala_id' => $escalaId, 'updated_at' => $ahora] + ($exists ? [] : ['created_at' => $ahora])
@@ -1441,7 +1432,6 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
                     ->where('pregunta_id', $preguntaId)
                     ->where('tipo_respuesta_id', $tipoId)
                     ->value('id');
-
                 foreach ($configuracion['opciones'] as $opcion) {
                     DB::table('opciones_respuesta')->updateOrInsert(
                         [
@@ -1460,6 +1450,106 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
             }
         }
     }
+    private function crearVariantesTransversales(): void
+    {
+        $variantes = [
+            [
+                'REC-01',
+                'Servicio',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona este servicio?',
+            ],
+            [
+                'REC-01',
+                'Actividad',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona esta actividad?',
+            ],
+            [
+                'REC-01',
+                'Curso',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona este curso?',
+            ],
+            [
+                'REC-01',
+                'Taller',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona este taller?',
+            ],
+            [
+                'REC-01',
+                'Programa',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona este programa?',
+            ],
+            [
+                'REC-01',
+                'Iniciativa',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona esta iniciativa?',
+            ],
+            [
+                'REC-01',
+                'Conferencia',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona esta conferencia?',
+            ],
+            [
+                'REC-01',
+                'Evento',
+                'En una escala de 0 a 10, donde 0 es nada probable y 10 es extremadamente probable, ¿qué tan probable es que recomiende a otra persona este evento?',
+            ],
+            [
+                'ATR-01',
+                'Servicio',
+                '¿A quién o a quiénes atribuye la realización de este servicio?',
+            ],
+            [
+                'ATR-01',
+                'Actividad',
+                '¿A quién o a quiénes atribuye la realización de esta actividad?',
+            ],
+            [
+                'ATR-01',
+                'Curso',
+                '¿A quién o a quiénes atribuye la realización de este curso?',
+            ],
+            [
+                'ATR-01',
+                'Taller',
+                '¿A quién o a quiénes atribuye la realización de este taller?',
+            ],
+            [
+                'ATR-01',
+                'Programa',
+                '¿A quién o a quiénes atribuye la realización de este programa?',
+            ],
+            [
+                'ATR-01',
+                'Iniciativa',
+                '¿A quién o a quiénes atribuye la realización de esta iniciativa?',
+            ],
+            [
+                'ATR-01',
+                'Conferencia',
+                '¿A quién o a quiénes atribuye la realización de esta conferencia?',
+            ],
+            [
+                'ATR-01',
+                'Evento',
+                '¿A quién o a quiénes atribuye la realización de este evento?',
+            ],
+        ];
+
+        foreach ($variantes as [$codigo, $tipo, $texto]) {
+            $preguntaId = DB::table('preguntas')->where('codigo', $codigo)->value('id');
+            $tipoExperienciaId = DB::table('tipos_experiencia')->where('nombre', $tipo)->value('id');
+
+            if ($preguntaId === null || $tipoExperienciaId === null) {
+                throw new RuntimeException("No existe la pregunta {$codigo} o el tipo de experiencia {$tipo}.");
+            }
+
+            $ahora = now();
+            DB::table('pregunta_tipo_experiencia')->updateOrInsert(
+                ['pregunta_id' => $preguntaId, 'tipo_experiencia_id' => $tipoExperienciaId],
+                fn (bool $exists) => ['texto' => $texto, 'updated_at' => $ahora] + ($exists ? [] : ['created_at' => $ahora])
+            );
+        }
+    }
 
     /**
      * Marca únicamente las preguntas con ID 1 y 2 como activas y predeterminadas.
@@ -1468,21 +1558,17 @@ JSON, true, 512, JSON_THROW_ON_ERROR);
     private function activarPreguntasPredeterminadasPorId(): void
     {
         $ids = [1, 2];
-
         $encontradas = DB::table('preguntas')->whereIn('id', $ids)->count();
         if ($encontradas !== count($ids)) {
             throw new RuntimeException(
                 'No se encontraron las dos preguntas con ID 1 y 2. Verifique los IDs en la tabla preguntas.'
             );
         }
-
         DB::table('preguntas')
             ->whereNotIn('id', $ids)
             ->update(['activo' => false, 'es_predeterminada' => false]);
-
         DB::table('preguntas')
             ->whereIn('id', $ids)
             ->update(['activo' => true, 'es_predeterminada' => true]);
     }
-
 }

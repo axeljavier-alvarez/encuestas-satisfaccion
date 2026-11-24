@@ -17,9 +17,6 @@ return new class extends Migration
             $table->string('codigo', 10)->unique();
             $table->string('nombre', 150);
             $table->text('descripcion')->nullable();
-            $table->foreignId('tipo_experiencia_id')
-                ->constrained('tipos_experiencia')
-                ->restrictOnDelete();
             $table->string('estado', 20)->default('borrador');            
             $table->timestamps();
         });

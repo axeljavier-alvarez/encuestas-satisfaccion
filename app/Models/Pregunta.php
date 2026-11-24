@@ -69,7 +69,7 @@ class Pregunta extends Model
             ->withTimestamps();
     }
 
-    
+
     public function configuracionesRespuesta()
     {
         return $this->hasMany(
@@ -101,4 +101,15 @@ class Pregunta extends Model
         return $this->belongsTo(Tema::class);
     }
 
+    public function tiposExperiencia()
+    {
+        return $this->belongsToMany(
+            TipoExperiencia::class,
+            'pregunta_tipo_experiencia',
+            'pregunta_id',
+            'tipo_experiencia_id'
+        )
+            ->withPivot('texto')
+            ->withTimestamps();
+    }
 }
