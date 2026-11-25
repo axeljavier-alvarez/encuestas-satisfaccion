@@ -2,38 +2,52 @@
 
 namespace App\Livewire\Administracion;
 
-use App\Models\{Plantilla, User};
+use App\Models\{Plantilla, User, Dependencia, Programa};
 use App\Traits\{DataTable, Interact};
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Illuminate\Validation\Rule;
-use Flux\Flux;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Flux\Flux;
 
 class Plantillas extends Component
 {
     use DataTable, Interact;
+
     public ?int $plantillaId = null;
     public string $nombre = '';
     public string $descripcion = '';
+    public ?int $asignadorId = null;
 
-    // propiedades para cambiar el estado de la plantilla
+    // Dependencia y programa seleccionados
+    public ?int $dependenciaId = null;
+    public ?int $programaId = null;
+
+    // Configuración de las series institucionales
+    private const SERIES = [
+        4  => ['serie' => 1, 'prefijo' => 'DDS'],
+        5  => ['serie' => 2, 'prefijo' => 'DEC'],
+        8  => ['serie' => 4, 'prefijo' => 'SAS'],
+        41 => ['serie' => 5, 'prefijo' => 'Convivencia Social'],
+        6  => ['serie' => 6, 'prefijo' => 'DMM'],
+    ];
+
+    // Propiedades para cambiar el estado
     public ?int $plantillaEstadoId = null;
     public string $nombrePlantillaEstado = '';
     public string $estadoActualPlantilla = '';
     public string $nuevoEstadoPlantilla = '';
 
-    // estados disponibles
     public array $estadosDisponibles = [
         'borrador' => 'Borrador',
         'publicada' => 'Publicada',
         'inactiva' => 'Inactiva',
     ];
 
-    // asignador seleccionado para la plantilla
-    public ?int $asignadorId = null;
-
-    // contenido de la tabla
+    // Contenido de la tabla
     public array $headers = [
         ['index' => 'id', 'label' => '#'],
         ['index' => 'codigo', 'label' => 'Código'],
@@ -43,7 +57,8 @@ class Plantillas extends Component
         ['index' => 'estado', 'label' => 'Estado'],
         ['index' => 'actions', 'label' => 'Acciones'],
     ];
-    // columnas que permiten ordenamiento
+
+    // Columnas que permiten ordenamiento
     protected function tableSortableColumns(): array
     {
         return [
@@ -53,6 +68,7 @@ class Plantillas extends Component
             'estado',
         ];
     }
+
     // Columnas disponibles para filtros
     protected function tableFilterableColumns(): array
     {
@@ -64,13 +80,15 @@ class Plantillas extends Component
             'estado',
         ];
     }
-    /* obtener las plantillas para la tabla */
+
+    /**
+     * Obtener las plantillas para la tabla.
+     */
     #[Computed]
     public function rows()
     {
         $query = Plantilla::query()->with('usuarios');
 
-        // aplicar búsqueda, filtros y ordenamiento
         $query->filterAdvance($this->headers, [
             'search' => $this->search,
             'filters' => $this->processFilters(),
@@ -80,24 +98,126 @@ class Plantillas extends Component
             ],
         ]);
 
-        // priorizar las plantillas publicadas
+        // Priorizar las plantillas publicadas
         if ($this->sortBy === 'id') {
             $query->reorder()
                 ->orderByRaw("
-                CASE
-                    WHEN estado = 'publicada' THEN 1
-                    WHEN estado = 'borrador' THEN 2
-                    WHEN estado = 'inactiva' THEN 3
-                    ELSE 4
-                END
-            ")
+                    CASE
+                        WHEN estado = 'publicada' THEN 1
+                        WHEN estado = 'borrador' THEN 2
+                        WHEN estado = 'inactiva' THEN 3
+                        ELSE 4
+                    END
+                ")
                 ->orderBy('id', $this->sortDirection);
         }
 
         return $query->paginate($this->getPerPage());
     }
 
-    /* limpiar los datos del formulario */
+    /**
+     * Obtener todas las dependencias registradas.
+     */
+    #[Computed]
+    public function dependenciasDisponibles(): Collection
+    {
+        return Dependencia::query()
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
+     * Normalizar los nombres para facilitar su comparación.
+     */
+    private function normalizarNombre(string $nombre): string
+    {
+        return Str::of($nombre)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+    }
+
+    /**
+     * Obtener los programas que todavía no tienen plantilla.
+     */
+    #[Computed]
+    public function programasDisponibles(): Collection
+    {
+        if ($this->dependenciaId === null) {
+            return collect();
+        }
+
+        // Obtener programas activos de la dependencia
+        $programas = Programa::query()
+            ->where('dependencia_id', $this->dependenciaId)
+            ->where('estado', 'A')
+            ->orderBy('nombre')
+            ->get();
+
+        // Obtener la serie institucional correspondiente
+        $configuracion = self::SERIES[$this->dependenciaId] ?? null;
+
+        // Si no tiene serie, mostrar sus programas
+        if ($configuracion === null) {
+            return $programas
+                ->unique('nombre')
+                ->values();
+        }
+
+        // Obtener nombres de plantillas de la misma serie
+        $nombresUtilizados = Plantilla::query()
+            ->where(
+                'codigo',
+                'like',
+                "SB-{$configuracion['serie']}%"
+            )
+            ->pluck('nombre')
+            ->map(
+                fn($nombre) =>
+                $this->normalizarNombre($nombre)
+            );
+
+        // Excluir programas que ya tienen una plantilla
+        return $programas
+            ->reject(function ($programa) use ($nombresUtilizados) {
+
+                $nombrePrograma = $this->normalizarNombre(
+                    $programa->nombre
+                );
+
+                return $nombresUtilizados->contains(
+                    fn($nombrePlantilla) =>
+                    str_contains(
+                        ' ' . $nombrePlantilla . ' ',
+                        ' ' . $nombrePrograma . ' '
+                    )
+                );
+            })
+            // Evitar opciones repetidas por nombre
+            ->unique(
+                fn($programa) =>
+                $this->normalizarNombre($programa->nombre)
+            )
+            ->values();
+    }
+
+    /**
+     * Limpiar el programa al cambiar de dependencia.
+     */
+    public function updatedDependenciaId(): void
+    {
+        $this->programaId = null;
+
+        unset($this->programasDisponibles);
+
+        $this->resetValidation();
+    }
+
+    /**
+     * Limpiar los datos del formulario.
+     */
     public function resetData(): void
     {
         $this->reset([
@@ -105,90 +225,84 @@ class Plantillas extends Component
             'nombre',
             'descripcion',
             'asignadorId',
+            'dependenciaId',
+            'programaId',
         ]);
+
+        unset($this->programasDisponibles);
+
         $this->resetValidation();
     }
 
+    /**
+     * Abrir el modal para crear una plantilla.
+     */
     public function abrirNuevaPlantilla(): void
     {
         $this->resetData();
+
         Flux::modal('nueva-plantilla')->show();
     }
 
+    /**
+     * Cerrar el modal de plantillas.
+     */
     public function cerrarNuevaPlantilla(): void
     {
         $this->resetData();
+
         Flux::modal('nueva-plantilla')->close();
     }
+
     /**
-     * Genera un código consecutivo para una plantilla
-     * según la serie institucional seleccionada.
+     * Generar un código consecutivo según la serie.
      *
-     * @param int $serie Serie a la que pertenece la plantilla.
-     * @return string Código generado con el formato SB-XXX.
-     * @throws \RuntimeException Si la serie alcanzó su límite.
+     * Ejemplo: SB-112, SB-113, SB-114.
      */
     private function generarCodigo(int $serie): string
     {
-        // Definir el rango de numeración de la serie.
-        // Ejemplo: serie 6, rango del 600 al 699.
         $inicio = $serie * 100;
         $fin = $inicio + 99;
 
-        // Obtener el número más alto registrado en la serie.
         $ultimoNumero = Plantilla::query()
-
-            // Buscar los códigos que pertenecen a la serie seleccionada.
             ->where('codigo', 'like', "SB-{$serie}%")
-
-            // Obtener únicamente los valores de la columna código.
             ->pluck('codigo')
-
-            // Filtrar los códigos que cumplen con el formato SB-XXX
-            // y pertenecen exactamente a la serie seleccionada.
             ->filter(function ($codigo) use ($serie) {
                 return preg_match(
                     "/^SB-{$serie}[0-9]{2}$/",
                     $codigo
                 );
             })
-
-            // Eliminar el prefijo SB- y convertir el código a entero.
-            // Ejemplo: SB-608 se convierte en 608.
-            ->map(fn($codigo) => (int) substr($codigo, 3))
-
-            // Obtener el número más alto de los códigos encontrados.
+            ->map(
+                fn($codigo) =>
+                (int) substr($codigo, 3)
+            )
             ->max();
 
-        // Si no existen registros en la serie, utilizar el número inicial.
-        // De lo contrario, incrementar en uno el último número registrado.
         $siguiente = $ultimoNumero === null
             ? $inicio
             : $ultimoNumero + 1;
 
-        // Verificar que el nuevo número no exceda el límite de la serie.
         if ($siguiente > $fin) {
-            throw new \RuntimeException(
-                'La serie seleccionada no tiene códigos disponibles.'
-            );
+            throw ValidationException::withMessages([
+                'dependenciaId' =>
+                'La dependencia no tiene códigos disponibles.',
+            ]);
         }
 
-        // Retornar el código consecutivo con el prefijo institucional.
         return 'SB-' . $siguiente;
     }
 
+    /**
+     * Guardar o actualizar una plantilla.
+     */
     public function guardar(): void
     {
-        // Validar los datos del formulario
-        $this->validate([
-            'nombre' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('plantillas', 'nombre')
-                    ->ignore($this->plantillaId),
-            ],
+        $this->asignadorId = filled($this->asignadorId)
+            ? $this->asignadorId
+            : null;
 
+        $reglas = [
             'descripcion' => [
                 'nullable',
                 'string',
@@ -196,51 +310,163 @@ class Plantillas extends Component
             ],
 
             'asignadorId' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('users', 'id')
                     ->where('rol', 'asignador')
                     ->where('activo', true),
             ],
-        ], [
-            'asignadorId.required' =>
-            'Seleccione un asignador.',
+        ];
+
+        if ($this->plantillaId === null) {
+
+            // Validaciones para crear
+            $reglas['dependenciaId'] = [
+                'required',
+                'integer',
+                Rule::exists('dependencias', 'id'),
+            ];
+
+            $reglas['programaId'] = [
+                'required',
+                'integer',
+                Rule::exists('programas', 'id')
+                    ->where(
+                        'dependencia_id',
+                        $this->dependenciaId
+                    )
+                    ->where('estado', 'A'),
+            ];
+        } else {
+
+            // Validaciones para editar
+            $this->nombre = trim($this->nombre);
+
+            $reglas['nombre'] = [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('plantillas', 'nombre')
+                    ->ignore($this->plantillaId),
+            ];
+        }
+
+        $this->validate($reglas, [
+            'dependenciaId.required' =>
+            'Seleccione una dependencia.',
+
+            'dependenciaId.exists' =>
+            'La dependencia seleccionada no existe.',
+
+            'programaId.required' =>
+            'Seleccione un programa.',
+
+            'programaId.exists' =>
+            'El programa seleccionado no está disponible.',
+
+            'nombre.required' =>
+            'Ingrese el nombre de la plantilla.',
 
             'asignadorId.exists' =>
             'El asignador seleccionado no está disponible.',
-        ], [
-            'nombre' => 'nombre de la plantilla',
-            'descripcion' => 'descripción',
-            'asignadorId' => 'asignador',
         ]);
 
         $mensaje = DB::transaction(function () {
+
             $datos = [
-                'nombre' => trim($this->nombre),
-                'descripcion' => trim($this->descripcion) ?: null,
+                'descripcion' =>
+                trim($this->descripcion) ?: null,
             ];
+
             if ($this->plantillaId !== null) {
-                // editar plantilla
-                $plantilla = Plantilla::findOrFail($this->plantillaId);
-                $plantilla->update($datos);
-                $mensaje = 'Plantilla actualizada correctamente';
+
+                // Actualizar plantilla existente
+                $plantilla = Plantilla::findOrFail(
+                    $this->plantillaId
+                );
+
+                $plantilla->update([
+                    ...$datos,
+                    'nombre' => $this->nombre,
+                ]);
+
+                $mensaje =
+                    'Plantilla actualizada correctamente';
             } else {
+
+                // Obtener la configuración institucional
+                $configuracion = self::SERIES[$this->dependenciaId] ?? null;
+
+                if ($configuracion === null) {
+                    throw ValidationException::withMessages([
+                        'dependenciaId' =>
+                        'Esta dependencia todavía no tiene una serie institucional configurada.',
+                    ]);
+                }
+
+                // Volver a consultar los programas disponibles
+                unset($this->programasDisponibles);
+
+                // Verificar que el programa no esté utilizado
+                $programa = $this->programasDisponibles
+                    ->firstWhere('id', $this->programaId);
+
+                if (! $programa) {
+                    throw ValidationException::withMessages([
+                        'programaId' =>
+                        'El programa ya tiene una plantilla o no está disponible.',
+                    ]);
+                }
+
+                // Generar código consecutivo
+                $codigo = $this->generarCodigo(
+                    $configuracion['serie']
+                );
+
+                // Generar nombre completo
+                $nombre = implode('-', [
+                    $codigo,
+                    $configuracion['prefijo'],
+                    trim($programa->nombre),
+                ]);
+
+                // Verificar longitud del nombre
+                if (mb_strlen($nombre) > 150) {
+                    throw ValidationException::withMessages([
+                        'programaId' =>
+                        'El nombre generado supera los 150 caracteres.',
+                    ]);
+                }
+
+                // Registrar nueva plantilla
                 $plantilla = Plantilla::create([
                     ...$datos,
-                    'codigo' => $this->generarCodigo(),
+                    'codigo' => $codigo,
+                    'nombre' => $nombre,
                     'estado' => 'borrador',
                 ]);
-                $mensaje = 'Plantilla guardada correctamente';
+
+                $mensaje =
+                    'Plantilla guardada correctamente';
             }
-            // asociar al asignador seleccionado
-            $plantilla->usuarios()->sync([
-                $this->asignadorId,
-            ]);
+
+            // Asociar o retirar el asignador
+            $plantilla->usuarios()->sync(
+                filled($this->asignadorId)
+                    ? [$this->asignadorId]
+                    : []
+            );
+
             return $mensaje;
         });
-        // cerrar modal
+
+        unset($this->rows);
+        unset($this->programasDisponibles);
+
         Flux::modal('nueva-plantilla')->close();
+
         $this->resetData();
+
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: $mensaje,
@@ -248,52 +474,54 @@ class Plantillas extends Component
         );
     }
 
+    /**
+     * Cargar los datos de una plantilla existente.
+     */
     public function editar(int $id): void
     {
-        // limpiar datos anteriores
         $this->resetData();
+
         $plantilla = Plantilla::query()
             ->with('usuarios')
             ->findOrFail($id);
-        // cargar datos formulario
+
         $this->plantillaId = $plantilla->id;
         $this->nombre = $plantilla->nombre;
         $this->descripcion = $plantilla->descripcion ?? '';
-        // recuperar el asignador asociado
+
         $this->asignadorId = $plantilla->usuarios
             ->firstWhere('rol', 'asignador')
             ?->id;
-        // Abrir el modal
+
         Flux::modal('nueva-plantilla')->show();
     }
 
-    /* abrir modal para cambiar el estado */
+    /**
+     * Abrir el modal para cambiar el estado.
+     */
     public function confirmarCambioEstado(int $id): void
     {
         $this->resetValidation();
 
-        // buscar la plantilla seleccionada
         $plantilla = Plantilla::findOrFail($id);
 
-        // recuperar los datos de la plantilla
         $this->plantillaEstadoId = $plantilla->id;
         $this->nombrePlantillaEstado = $plantilla->nombre;
         $this->estadoActualPlantilla = $plantilla->estado;
-
-        // seleccionar inicialmente el estado actual
         $this->nuevoEstadoPlantilla = $plantilla->estado;
 
-        // abrir modal
         Flux::modal('cambiar-estado-plantilla')->show();
     }
-    /* actualizar el estado de la plantilla */
+
+    /**
+     * Actualizar el estado de una plantilla.
+     */
     public function cambiarEstadoPlantilla(): void
     {
         if ($this->plantillaEstadoId === null) {
             return;
         }
 
-        // validar el estado seleccionado
         $this->validate([
             'nuevoEstadoPlantilla' => [
                 'required',
@@ -304,40 +532,32 @@ class Plantillas extends Component
                 ]),
             ],
         ], [], [
-            'nuevoEstadoPlantilla' => 'estado de la plantilla',
+            'nuevoEstadoPlantilla' =>
+            'estado de la plantilla',
         ]);
 
-        // buscar la plantilla
         $plantilla = Plantilla::findOrFail(
             $this->plantillaEstadoId
         );
 
-        // verificar si realmente cambió el estado
-        // if ($plantilla->estado === $this->nuevoEstadoPlantilla) {
-        //     $this->addError(
-        //         'nuevoEstadoPlantilla',
-        //         'Seleccione un estado diferente al actual.'
-        //     );
-
-        //     return;
-        // }
-
-        // actualizar el estado
         $plantilla->update([
             'estado' => $this->nuevoEstadoPlantilla,
         ]);
 
-        // cerrar modal y limpiar propiedades
+        unset($this->rows);
+
         $this->cerrarCambioEstado();
 
-        // mostrar mensaje
         $this->dispatch(
             'mostrar-mensaje',
             mensaje: 'Estado de la plantilla actualizado correctamente',
             tipo: 'success'
         );
     }
-    /* cerrar modal de cambio de estado */
+
+    /**
+     * Cerrar el modal de cambio de estado.
+     */
     public function cerrarCambioEstado(): void
     {
         $this->reset([
@@ -352,26 +572,33 @@ class Plantillas extends Component
         Flux::modal('cambiar-estado-plantilla')->close();
     }
 
-
-
+    /**
+     * Renderizar la vista.
+     */
     public function render()
     {
         $estadisticas = Plantilla::query()
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("
-            SUM(CASE WHEN estado = 'borrador' THEN 1 ELSE 0 END)
-            as borradores
-        ")
+                SUM(
+                    CASE WHEN estado = 'borrador'
+                    THEN 1 ELSE 0 END
+                ) as borradores
+            ")
             ->selectRaw("
-            SUM(CASE WHEN estado = 'publicada' THEN 1 ELSE 0 END)
-            as publicadas
-        ")
+                SUM(
+                    CASE WHEN estado = 'publicada'
+                    THEN 1 ELSE 0 END
+                ) as publicadas
+            ")
             ->selectRaw("
-            SUM(CASE WHEN estado = 'inactiva' THEN 1 ELSE 0 END)
-            as inactivas
-        ")
+                SUM(
+                    CASE WHEN estado = 'inactiva'
+                    THEN 1 ELSE 0 END
+                ) as inactivas
+            ")
             ->first();
-        // obtener asignadores activos
+
         $asignadores = User::query()
             ->where('rol', 'asignador')
             ->where('activo', true)
@@ -380,7 +607,7 @@ class Plantillas extends Component
 
         return view('livewire.administracion.plantillas', [
             'estadisticas' => $estadisticas,
-            'asignadores' => $asignadores
+            'asignadores' => $asignadores,
         ]);
     }
 }
