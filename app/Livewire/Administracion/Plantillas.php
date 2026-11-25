@@ -41,6 +41,8 @@ class Plantillas extends Component
     public string $estadoActualPlantilla = '';
     public string $nuevoEstadoPlantilla = '';
 
+
+
     public array $estadosDisponibles = [
         'borrador' => 'Borrador',
         'publicada' => 'Publicada',
@@ -55,6 +57,11 @@ class Plantillas extends Component
         ['index' => 'descripcion', 'label' => 'Descripción'],
         ['index' => 'usuarios.name', 'label' => 'Asignador'],
         ['index' => 'estado', 'label' => 'Estado'],
+        [
+            'index' => 'created_at',
+            'label' => 'Fecha de creación',
+            'format' => 'date',
+        ],
         ['index' => 'actions', 'label' => 'Acciones'],
     ];
 
@@ -66,6 +73,7 @@ class Plantillas extends Component
             'codigo',
             'nombre',
             'estado',
+            'created_at'
         ];
     }
 
@@ -122,6 +130,7 @@ class Plantillas extends Component
     public function dependenciasDisponibles(): Collection
     {
         return Dependencia::query()
+            ->whereHas('programas')
             ->orderBy('nombre')
             ->get();
     }
@@ -488,7 +497,6 @@ class Plantillas extends Component
         $this->plantillaId = $plantilla->id;
         $this->nombre = $plantilla->nombre;
         $this->descripcion = $plantilla->descripcion ?? '';
-
         $this->asignadorId = $plantilla->usuarios
             ->firstWhere('rol', 'asignador')
             ?->id;

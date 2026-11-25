@@ -36,6 +36,16 @@ class DatosOrganizacionalesSeeder extends Seeder
                     'email' => 'asistente.administracion@evaluaciones.test',
                     'rol' => 'asignador',
                 ],
+                [
+                    'name' => 'Axel Alvarez',
+                    'email' => 'ajalvarez@muniguate.com',
+                    'rol' => 'asignador',
+                ],
+                [
+                    'name' => 'Nelson Vasquez',
+                    'email' => 'nvasquez@muniguate.com',
+                    'rol' => 'asignador',
+                ],
             ];
 
             foreach ($usuarios as $datos) {

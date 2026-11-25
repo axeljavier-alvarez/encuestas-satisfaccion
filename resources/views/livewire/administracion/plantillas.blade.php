@@ -8,9 +8,7 @@
 
             <div class="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-500/10">
 
-                <flux:icon.document-text
-                    class="size-9 text-blue-700 dark:text-blue-400"
-                />
+                <flux:icon.document-text class="size-9 text-blue-700 dark:text-blue-400" />
 
             </div>
 
@@ -32,13 +30,12 @@
         <div class="indicadores-preguntas cuatro-indicadores">
 
             {{-- TOTAL DE PLANTILLAS --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-blue-50 dark:bg-blue-500/10">
 
-                    <flux:icon.document-duplicate
-                        class="size-5 text-blue-600 dark:text-blue-400"
-                    />
+                    <flux:icon.document-duplicate class="size-5 text-blue-600 dark:text-blue-400" />
 
                 </div>
 
@@ -57,13 +54,12 @@
             </div>
 
             {{-- BORRADORES --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-amber-50 dark:bg-amber-500/10">
 
-                    <flux:icon.pencil-square
-                        class="size-5 text-amber-600 dark:text-amber-400"
-                    />
+                    <flux:icon.pencil-square class="size-5 text-amber-600 dark:text-amber-400" />
 
                 </div>
 
@@ -82,13 +78,12 @@
             </div>
 
             {{-- PUBLICADAS --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-green-50 dark:bg-green-500/10">
 
-                    <flux:icon.check-circle
-                        class="size-5 text-green-600 dark:text-green-400"
-                    />
+                    <flux:icon.check-circle class="size-5 text-green-600 dark:text-green-400" />
 
                 </div>
 
@@ -107,13 +102,12 @@
             </div>
 
             {{-- INACTIVAS --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-red-50 dark:bg-red-500/10">
 
-                    <flux:icon.x-circle
-                        class="size-5 text-red-600 dark:text-red-400"
-                    />
+                    <flux:icon.x-circle class="size-5 text-red-600 dark:text-red-400" />
 
                 </div>
 
@@ -150,22 +144,14 @@
 
         </div>
 
-        <flux:button
-            variant="primary"
-            icon="plus"
-            wire:click="abrirNuevaPlantilla"
-        >
+        <flux:button variant="primary" icon="plus" wire:click="abrirNuevaPlantilla">
             Nueva plantilla
         </flux:button>
 
     </div>
 
     {{-- MODAL CREAR / EDITAR PLANTILLA --}}
-    <flux:modal
-        name="nueva-plantilla"
-        class="w-full max-w-lg"
-        @close="cerrarNuevaPlantilla"
-    >
+    <flux:modal name="nueva-plantilla" class="w-full max-w-lg" @close="cerrarNuevaPlantilla">
 
         <div class="space-y-6">
 
@@ -173,9 +159,7 @@
             <div>
 
                 <flux:heading size="xl">
-                    {{ $plantillaId
-                        ? 'Editar plantilla'
-                        : 'Nueva plantilla' }}
+                    {{ $plantillaId ? 'Editar plantilla' : 'Nueva plantilla' }}
                 </flux:heading>
 
                 <flux:text class="mt-2">
@@ -194,140 +178,88 @@
                 @if ($plantillaId === null)
 
                     {{-- DEPENDENCIA --}}
-                    <flux:select
-                        wire:model.live="dependenciaId"
-                        label="Dependencia"
-                    >
+                    <flux:select wire:model.live="dependenciaId" label="Dependencia">
 
                         <flux:select.option value="">
                             Seleccione una dependencia
                         </flux:select.option>
 
                         @foreach ($this->dependenciasDisponibles as $dependencia)
-
-                            <flux:select.option
-                                :value="$dependencia->id"
-                                wire:key="dependencia-{{ $dependencia->id }}"
-                            >
+                            <flux:select.option :value="$dependencia->id" wire:key="dependencia-{{ $dependencia->id }}">
 
                                 {{ $dependencia->nombre }}
 
                             </flux:select.option>
-
                         @endforeach
 
                     </flux:select>
 
                     {{-- PROGRAMA --}}
-                    <flux:select
-                        wire:model="programaId"
-                        wire:key="programas-{{ $dependenciaId ?? 'sin-dependencia' }}"
-                        label="Programa"
-                        :disabled="$dependenciaId === null || $this->programasDisponibles->isEmpty()"
-                    >
+                    <flux:select wire:model="programaId" wire:key="programas-{{ $dependenciaId ?? 'sin-dependencia' }}"
+                        label="Programa" :disabled="$dependenciaId === null || $this->programasDisponibles->isEmpty()">
 
                         <flux:select.option value="">
 
                             @if ($dependenciaId === null)
-
                                 Seleccione primero una dependencia
-
                             @elseif ($this->programasDisponibles->isEmpty())
-
                                 No hay programas disponibles
-
                             @else
-
                                 Seleccione un programa
-
                             @endif
 
                         </flux:select.option>
 
                         @foreach ($this->programasDisponibles as $programa)
-
-                            <flux:select.option
-                                :value="$programa->id"
-                                wire:key="programa-{{ $programa->id }}"
-                            >
+                            <flux:select.option :value="$programa->id" wire:key="programa-{{ $programa->id }}">
 
                                 {{ $programa->nombre }}
 
                             </flux:select.option>
-
                         @endforeach
 
                     </flux:select>
-
                 @else
-
                     {{-- NOMBRE DE LA PLANTILLA --}}
-                    <flux:input
-                        wire:model="nombre"
-                        label="Nombre de la plantilla"
-                        placeholder="Ingrese el nombre de la plantilla"
-                        readonly
-                    />
+                    <flux:input wire:model="nombre" label="Nombre de la plantilla"
+                        placeholder="Ingrese el nombre de la plantilla" readonly />
                 @endif
 
                 {{-- DESCRIPCIÓN --}}
-                <flux:textarea
-                    wire:model="descripcion"
-                    label="Descripción"
-                    placeholder="Describa el propósito de la plantilla..."
-                    rows="3"
-                    resize="vertical"
-                />
+                <flux:textarea wire:model="descripcion" label="Descripción"
+                    placeholder="Describa el propósito de la plantilla..." rows="3" resize="vertical" />
 
                 {{-- ASIGNADOR --}}
-                <flux:select
-                    wire:model="asignadorId"
-                    label="Asignador responsable"
-                >
+                <flux:select wire:model="asignadorId" label="Asignador responsable">
 
                     <flux:select.option value="">
                         Seleccione un asignador
                     </flux:select.option>
 
                     @foreach ($asignadores as $asignador)
-
-                        <flux:select.option
-                            :value="$asignador->id"
-                            wire:key="asignador-{{ $asignador->id }}"
-                        >
+                        <flux:select.option :value="$asignador->id" wire:key="asignador-{{ $asignador->id }}">
 
                             {{ $asignador->name }}
 
                         </flux:select.option>
-
                     @endforeach
 
                 </flux:select>
 
                 {{-- BOTONES --}}
-                <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end dark:border-zinc-700">
+                <div
+                    class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end dark:border-zinc-700">
 
-                    <flux:button
-                        type="button"
-                        variant="ghost"
-                        wire:click="cerrarNuevaPlantilla"
-                    >
+                    <flux:button type="button" variant="ghost" wire:click="cerrarNuevaPlantilla">
 
                         Cancelar
 
                     </flux:button>
 
-                    <flux:button
-                        type="submit"
-                        variant="primary"
-                        icon="check"
-                        wire:loading.attr="disabled"
-                        wire:target="guardar"
-                    >
+                    <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled"
+                        wire:target="guardar">
 
-                        {{ $plantillaId
-                            ? 'Guardar cambios'
-                            : 'Guardar plantilla' }}
+                        {{ $plantillaId ? 'Guardar cambios' : 'Guardar plantilla' }}
 
                     </flux:button>
 
@@ -340,10 +272,7 @@
     </flux:modal>
 
     {{-- MODAL CAMBIAR ESTADO --}}
-    <flux:modal
-        name="cambiar-estado-plantilla"
-        class="w-full max-w-lg"
-    >
+    <flux:modal name="cambiar-estado-plantilla" class="w-full max-w-lg">
 
         <div class="space-y-6">
 
@@ -382,8 +311,7 @@
                             'inactiva' => 'red',
                             default => 'zinc',
                         }"
-                        size="sm"
-                    >
+                        size="sm">
 
                         {{ ucfirst($estadoActualPlantilla) }}
 
@@ -393,48 +321,33 @@
 
             </div>
 
-            <form
-                wire:submit="cambiarEstadoPlantilla"
-                class="space-y-5"
-            >
+            <form wire:submit="cambiarEstadoPlantilla" class="space-y-5">
 
-                <flux:radio.group
-                    wire:model.live="nuevoEstadoPlantilla"
-                    label="Nuevo estado"
-                >
+                <flux:radio.group wire:model.live="nuevoEstadoPlantilla" label="Nuevo estado">
 
                     <div class="space-y-3">
 
                         {{-- BORRADOR --}}
                         <div class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
 
-                            <flux:radio
-                                value="borrador"
-                                label="Borrador"
-                                description="Plantilla pendiente de configuración."
-                            />
+                            <flux:radio value="borrador" label="Borrador"
+                                description="Plantilla pendiente de configuración." />
 
                         </div>
 
                         {{-- PUBLICADA --}}
                         <div class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
 
-                            <flux:radio
-                                value="publicada"
-                                label="Publicada"
-                                description="Disponible para utilizarse en encuestas."
-                            />
+                            <flux:radio value="publicada" label="Publicada"
+                                description="Disponible para utilizarse en encuestas." />
 
                         </div>
 
                         {{-- INACTIVA --}}
                         <div class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
 
-                            <flux:radio
-                                value="inactiva"
-                                label="Inactiva"
-                                description="No disponible para nuevas encuestas."
-                            />
+                            <flux:radio value="inactiva" label="Inactiva"
+                                description="No disponible para nuevas encuestas." />
 
                         </div>
 
@@ -443,25 +356,17 @@
                 </flux:radio.group>
 
                 {{-- BOTONES --}}
-                <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end dark:border-zinc-700">
+                <div
+                    class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-end dark:border-zinc-700">
 
-                    <flux:button
-                        type="button"
-                        variant="ghost"
-                        wire:click="cerrarCambioEstado"
-                    >
+                    <flux:button type="button" variant="ghost" wire:click="cerrarCambioEstado">
 
                         Cancelar
 
                     </flux:button>
 
-                    <flux:button
-                        type="submit"
-                        variant="primary"
-                        icon="check"
-                        wire:target="cambiarEstadoPlantilla"
-                        wire:loading.attr="disabled"
-                    >
+                    <flux:button type="submit" variant="primary" icon="check"
+                        wire:target="cambiarEstadoPlantilla" wire:loading.attr="disabled">
 
                         Guardar estado
 
@@ -479,60 +384,46 @@
     <x-alerta />
 
     {{-- TABLA DE PLANTILLAS --}}
-    <div class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+    <div
+        class="tabla-preguntas overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
-        <x-data-table
-            :headers="$headers"
-            :rows="$this->rows"
-            :advance-filter="true"
-            empty-message="No se encontraron plantillas."
-        >
+        <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
+            empty-message="No se encontraron plantillas.">
 
             @interact('id', $row)
-
                 {{ $row->id }}
-
             @endinteract
 
             @interact('codigo', $row)
-
                 <flux:badge color="blue" size="sm">
 
                     {{ $row->codigo }}
 
                 </flux:badge>
-
             @endinteract
 
             @interact('nombre', $row)
-
                 <p class="font-medium text-zinc-900 dark:text-zinc-100">
 
                     {{ $row->nombre }}
 
                 </p>
-
             @endinteract
 
-            @interact('descripcion', $row)
 
-                <p
-                    class="max-w-xs truncate text-sm text-zinc-600 dark:text-zinc-400"
-                    title="{{ $row->descripcion }}"
-                >
+
+            @interact('descripcion', $row)
+                <p class="max-w-xs truncate text-sm text-zinc-600 dark:text-zinc-400" title="{{ $row->descripcion }}">
 
                     {{ $row->descripcion ?: 'Sin descripción' }}
 
                 </p>
-
             @endinteract
 
             @interact('usuarios.name', $row)
-
                 <div class="flex flex-wrap gap-1">
 
                     @forelse ($row->usuarios->where('rol', 'asignador') as $usuario)
-
                         <flux:badge color="blue" size="sm">
 
                             {{ $usuario->name }}
@@ -544,45 +435,35 @@
                         <flux:badge color="zinc" size="sm">
                             Sin asignador
                         </flux:badge>
-
                     @endforelse
 
                 </div>
-
             @endinteract
 
             @interact('estado', $row)
-
                 <flux:badge
                     :color="match ($row->estado) {
-                        'borrador' => 'amber',
-                        'publicada' => 'green',
-                        'inactiva' => 'red',
-                        default => 'zinc',
-                    }"
-                    size="sm"
-                >
+                                                                                                        'borrador' => 'amber',
+                                                                                                        'publicada' => 'green',
+                                                                                                        'inactiva' => 'red',
+                                                                                                        default => 'zinc',
+                                                                                                    }"
+                    size="sm">
 
                     {{ ucfirst($row->estado) }}
 
                 </flux:badge>
-
             @endinteract
+
+            @interact('column.created_at', $row)
+    {{ $row->created_at?->locale('es')->translatedFormat('d \d\e F \d\e Y') }}
+@endinteract
 
             {{-- ACCIONES --}}
             @interact('actions', $row)
+                <flux:dropdown position="bottom" align="center">
 
-                <flux:dropdown
-                    position="bottom"
-                    align="center"
-                >
-
-                    <flux:button
-                        icon="ellipsis-vertical"
-                        variant="ghost"
-                        size="sm"
-                        aria-label="Acciones"
-                    />
+                    <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" aria-label="Acciones" />
 
                     <flux:menu>
 
@@ -593,10 +474,7 @@
                         <flux:menu.separator />
 
                         {{-- EDITAR --}}
-                        <flux:menu.item
-                            icon="pencil-square"
-                            wire:click="editar({{ $row->id }})"
-                        >
+                        <flux:menu.item icon="pencil-square" wire:click="editar({{ $row->id }})">
 
                             Editar plantilla
 
@@ -605,10 +483,7 @@
                         <flux:menu.separator />
 
                         {{-- CAMBIAR ESTADO --}}
-                        <flux:menu.item
-                            icon="arrows-right-left"
-                            wire:click="confirmarCambioEstado({{ $row->id }})"
-                        >
+                        <flux:menu.item icon="arrows-right-left" wire:click="confirmarCambioEstado({{ $row->id }})">
 
                             Cambiar estado
 
@@ -617,7 +492,6 @@
                     </flux:menu>
 
                 </flux:dropdown>
-
             @endinteract
 
         </x-data-table>
