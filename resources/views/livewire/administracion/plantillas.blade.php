@@ -268,7 +268,6 @@
                         placeholder="Ingrese el nombre de la plantilla"
                         readonly
                     />
-
                 @endif
 
                 {{-- DESCRIPCIÓN --}}
