@@ -20,7 +20,9 @@ class DatabaseSeeder extends Seeder
             DatosInicialesSeeder::class,
             DatosOrganizacionalesSeeder::class,
             TiposRespuestaSeeder::class,
-            PlantillaSeeder::class
+            PlantillaSeeder::class,
+            DependenciaSeeder::class,
+            ProgramaSeeder::class
         ]);
 
     }

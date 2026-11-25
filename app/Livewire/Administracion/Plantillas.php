@@ -120,31 +120,61 @@ class Plantillas extends Component
         $this->resetData();
         Flux::modal('nueva-plantilla')->close();
     }
-    /* generar codigo consecutivo para plantilla */
-    private function generarCodigo(): string
+    /**
+     * Genera un código consecutivo para una plantilla
+     * según la serie institucional seleccionada.
+     *
+     * @param int $serie Serie a la que pertenece la plantilla.
+     * @return string Código generado con el formato SB-XXX.
+     * @throws \RuntimeException Si la serie alcanzó su límite.
+     */
+    private function generarCodigo(int $serie): string
     {
-        $codigos = Plantilla::query()
-            ->where('codigo', 'like', 'PLT-%')
-            ->pluck('codigo');
+        // Definir el rango de numeración de la serie.
+        // Ejemplo: serie 6, rango del 600 al 699.
+        $inicio = $serie * 100;
+        $fin = $inicio + 99;
 
-        $ultimoNumero = $codigos
-            ->map(function ($codigo) {
-                if (preg_match('/^PLT-(\d+)$/', $codigo, $coincidencias)) {
-                    return (int) $coincidencias[1];
-                }
+        // Obtener el número más alto registrado en la serie.
+        $ultimoNumero = Plantilla::query()
 
-                return 0;
+            // Buscar los códigos que pertenecen a la serie seleccionada.
+            ->where('codigo', 'like', "SB-{$serie}%")
+
+            // Obtener únicamente los valores de la columna código.
+            ->pluck('codigo')
+
+            // Filtrar los códigos que cumplen con el formato SB-XXX
+            // y pertenecen exactamente a la serie seleccionada.
+            ->filter(function ($codigo) use ($serie) {
+                return preg_match(
+                    "/^SB-{$serie}[0-9]{2}$/",
+                    $codigo
+                );
             })
-            ->max() ?? 0;
 
-        $siguiente = $ultimoNumero + 1;
+            // Eliminar el prefijo SB- y convertir el código a entero.
+            // Ejemplo: SB-608 se convierte en 608.
+            ->map(fn($codigo) => (int) substr($codigo, 3))
 
-        return 'PLT-' . str_pad(
-            (string) $siguiente,
-            3,
-            '0',
-            STR_PAD_LEFT
-        );
+            // Obtener el número más alto de los códigos encontrados.
+            ->max();
+
+        // Si no existen registros en la serie, utilizar el número inicial.
+        // De lo contrario, incrementar en uno el último número registrado.
+        $siguiente = $ultimoNumero === null
+            ? $inicio
+            : $ultimoNumero + 1;
+
+        // Verificar que el nuevo número no exceda el límite de la serie.
+        if ($siguiente > $fin) {
+            throw new \RuntimeException(
+                'La serie seleccionada no tiene códigos disponibles.'
+            );
+        }
+
+        // Retornar el código consecutivo con el prefijo institucional.
+        return 'SB-' . $siguiente;
     }
 
     public function guardar(): void
@@ -321,6 +351,8 @@ class Plantillas extends Component
 
         Flux::modal('cambiar-estado-plantilla')->close();
     }
+
+
 
     public function render()
     {
