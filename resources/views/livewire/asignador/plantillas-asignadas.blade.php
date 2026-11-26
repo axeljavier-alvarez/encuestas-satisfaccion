@@ -1,10 +1,11 @@
 <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6">
-     {{-- Encabezado --}}
+    {{-- Encabezado --}}
     <div class="encabezado-preguntas">
 
         <div class="titulo-preguntas">
 
-            <div class="flex size-12 shrink-0 items-center justify-center
+            <div
+                class="flex size-12 shrink-0 items-center justify-center
                         rounded-xl bg-blue-50 text-blue-700
                         dark:bg-blue-950 dark:text-blue-400">
 
@@ -28,7 +29,8 @@
         <div class="indicadores-preguntas cuatro-indicadores">
 
             {{-- Total --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
 
                 <div class="icono-estadistica bg-blue-50 text-blue-600">
@@ -48,7 +50,8 @@
             </div>
 
             {{-- Borradores --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
 
                 <div class="icono-estadistica bg-amber-50 text-amber-600">
@@ -68,7 +71,8 @@
             </div>
 
             {{-- Publicadas --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-green-50 text-green-600">
                     <flux:icon.check-circle class="size-5" />
@@ -87,7 +91,8 @@
             </div>
 
             {{-- Inactivas --}}
-            <div class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div
+                class="tarjeta-estadistica border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="icono-estadistica bg-red-50 text-red-600">
                     <flux:icon.no-symbol class="size-5" />
@@ -109,5 +114,110 @@
 
     </div>
 
-    
+    <x-alerta />
+    {{-- tabla de plantillas asignadas --}}
+    <div
+        class="overflow-hidden rounded-xl border border-zinc-200
+                bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+
+        <x-data-table :headers="$headers" :rows="$this->rows" :advance-filter="true"
+            empty-message="Actualmente no tienes plantillas asignadas.">
+            {{-- ID --}}
+            @interact('id', $row)
+                <span class="font-medium text-zinc-500">
+                    {{ $row->id }}
+                </span>
+            @endinteract
+            {{-- Código --}}
+            @interact('codigo', $row)
+                <flux:badge color="blue" size="sm">
+                    {{ $row->codigo }}
+                </flux:badge>
+            @endinteract
+            {{-- nombre --}}
+            @interact('nombre', $row)
+                <div class="max-w-sm whitespace-normal">
+                    <span class="font-medium text-zinc-800
+                                 dark:text-zinc-100">
+                        {{ $row->nombre }}
+                    </span>
+                </div>
+            @endinteract
+            {{-- descripcion --}}
+            @interact('descripcion', $row)
+                <div class="max-w-xs whitespace-normal">
+
+                    @if ($row->descripcion)
+                        <span class="text-sm text-zinc-600
+                                     dark:text-zinc-400">
+                            {{ $row->descripcion }}
+                        </span>
+                    @else
+                        <span class="text-sm italic text-zinc-400">
+                            Sin descripción
+                        </span>
+                    @endif
+
+                </div>
+            @endinteract
+            {{-- Cantidad de preguntas --}}
+            @interact('preguntas_count', $row)
+                <flux:badge :color="$row->preguntas_count > 0 ? 'blue' : 'zinc'" size="sm">
+                    {{ $row->preguntas_count }}
+                    {{ $row->preguntas_count === 1 ? 'pregunta' : 'preguntas' }}
+                </flux:badge>
+            @endinteract
+
+            {{-- Estado --}}
+            @interact('estado', $row)
+                @switch($row->estado)
+                    @case('borrador')
+                        <flux:badge color="amber" size="sm">
+                            Borrador
+                        </flux:badge>
+                    @break
+
+                    @case('publicada')
+                        <flux:badge color="green" size="sm">
+                            Publicada
+                        </flux:badge>
+                    @break
+
+                    @case('inactiva')
+                        <flux:badge color="red" size="sm">
+                            Inactiva
+                        </flux:badge>
+                    @break
+
+                    @default
+                        <flux:badge color="zinc" size="sm">
+                            {{ ucfirst($row->estado) }}
+                        </flux:badge>
+                @endswitch
+            @endinteract
+
+            {{-- acciones --}}
+            @interact('actions', $row)
+                <flux:dropdown position="bottom" align="end">
+                    <flux:button icon="ellipsis-horizontal" variant="ghost" size="sm" />
+                    <flux:menu>
+
+                        @if (\Illuminate\Support\Facades\Route::has('asignador.plantillas.preguntas'))
+                            <flux:menu.item icon="clipboard-document-list"
+                                :href="route('asignador.plantillas.preguntas', $row->id)" wire:navigate>
+                                Gestionar preguntas
+                            </flux:menu.item>
+                        @else
+                            <flux:menu.item icon="clipboard-document-list" disabled>
+                                Gestionar preguntas
+                            </flux:menu.item>
+                        @endif
+
+                    </flux:menu>
+                </flux:dropdown>
+            @endinteract
+        </x-data-table>
+    </div>
+
+
 </div>
