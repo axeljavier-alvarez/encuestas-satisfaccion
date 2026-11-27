@@ -73,78 +73,78 @@ class GestionarPreguntas extends Component
     }
     /* obtener preguntas predeterminadas */
     #[Computed]
-    public function preguntasPredeterminadas() 
+    public function preguntasPredeterminadas()
     {
         return Pregunta::query()
-        ->with(['factor', 'tiposRespuesta'])
-        ->whereIn(
-            'codigo',
-            self::CODIGOS_PREDETERMINADOS
-        )
-        ->get()
-        ->sortBy(function($pregunta){
-            return array_search(
-                $pregunta->codigo,
+            ->with(['factor', 'tiposRespuesta'])
+            ->whereIn(
+                'codigo',
                 self::CODIGOS_PREDETERMINADOS
-            );
-        })
-        ->values();
+            )
+            ->get()
+            ->sortBy(function ($pregunta) {
+                return array_search(
+                    $pregunta->codigo,
+                    self::CODIGOS_PREDETERMINADOS
+                );
+            })
+            ->values();
     }
     /* obtener factores con preguntas activas */
     #[Computed]
     public function factores()
     {
         return Factor::query()
-        ->whereHas('preguntas', function($query){
-            $query->where('activo', true); 
-        })
-        ->orderBy('id')
-        ->get();
+            ->whereHas('preguntas', function ($query) {
+                $query->where('activo', true);
+            })
+            ->orderBy('id')
+            ->get();
     }
     /* obtener banco de preguntas disponibles */
     #[Computed]
     public function bancoPreguntas()
     {
         return Pregunta::query()
-        ->with(['factor', 'tiposRespuesta'])
-        ->where('activo', true)
-        ->whereNotIn(
-            'id',
-            $this->preguntasSeleccionadas
-        )
-        ->whereNotIn(
-            'codigo',
-            self::CODIGOS_PREDETERMINADOS
-        )
-        ->when(
-            $this->factorSeleccionado,
-            function($query){
-                $query->where(
-                    'factor_id',
-                    $this->factorSeleccionado
-                );
-            }
-        )
-        ->when(
-            filled($this->search),
-            function($query){
-                $busqueda = trim($this->search);
-                $query->where(function($query) use ($busqueda){
+            ->with(['factor', 'tiposRespuesta'])
+            ->where('activo', true)
+            ->whereNotIn(
+                'id',
+                $this->preguntasSeleccionadas
+            )
+            ->whereNotIn(
+                'codigo',
+                self::CODIGOS_PREDETERMINADOS
+            )
+            ->when(
+                $this->factorSeleccionado,
+                function ($query) {
                     $query->where(
-                        'texto',
-                        'like',
-                        "%{$busqueda}%"
-                    )->orWhere(
-                        'codigo',
-                        'like',
-                        "%{$busqueda}%"
+                        'factor_id',
+                        $this->factorSeleccionado
                     );
-                });
-            }
-        )
-        ->orderBy('factor_id')
-        ->orderBy('id')
-        ->get();
+                }
+            )
+            ->when(
+                filled($this->search),
+                function ($query) {
+                    $busqueda = trim($this->search);
+                    $query->where(function ($query) use ($busqueda) {
+                        $query->where(
+                            'texto',
+                            'like',
+                            "%{$busqueda}%"
+                        )->orWhere(
+                            'codigo',
+                            'like',
+                            "%{$busqueda}%"
+                        );
+                    });
+                }
+            )
+            ->orderBy('factor_id')
+            ->orderBy('id')
+            ->get();
     }
     /* obtener preguntas seleccionadas en su orden */
     #[Computed]
@@ -157,7 +157,7 @@ class GestionarPreguntas extends Component
             ->keyBy('id');
 
         return collect($this->preguntasSeleccionadas)
-            ->map(fn ($id) => $preguntas->get($id))
+            ->map(fn($id) => $preguntas->get($id))
             ->filter()
             ->values();
     }
@@ -171,7 +171,71 @@ class GestionarPreguntas extends Component
     #[Computed]
     public function espaciosDisponibles(): int
     {
-        
+        return max(
+            0,
+            self::MAXIMO_PREGUNTAS - $this->totalPreguntas
+        );
+    }
+    /* agregar pregunta al formulario */
+    public function agregarPregunta(int $id): void
+    {
+        $this->obtenerPlantilla();
+        if (in_array($id, $this->preguntasSeleccionadas)) {
+            return;
+        }
+        if (
+            count($this->preguntasSeleccionadas)
+            >= self::MAXIMO_PREGUNTAS
+        ) {
+            $this->dispatch(
+                'mostrar-mensaje',
+                mensaje: 'La plantilla admite un máximo de 10 preguntas.',
+                tipo: 'error'
+            );
+            return;
+        }
+
+        $pregunta = Pregunta::query()
+            ->with('tiposRespuesta')
+            ->where('activo', true)
+            ->findOrFail($id);
+
+        if ($pregunta->tiposRespuesta->isEmpty()) {
+            $this->dispatch(
+                'mostrar-mensaje',
+                mensaje: 'La pregunta no tiene tipos de respuesta aconfigurados',
+                tipo: 'error'
+            );
+            return;
+        }
+        $this->preguntasSeleccionadas[] = $pregunta->id;
+        $this->tiposRespuestaSeleccionados[$pregunta->id]
+            = $pregunta->tiposRespuesta->first()->id;
+        $this->actualizarVista();
+    }
+    /* retirar una pregunta adicional */
+    public function quitarPregunta(int $id): void
+    {
+        $this->obtenerPlantilla();
+        if (
+            $this->preguntasPredeterminadas
+            ->contains('id', $id)
+        ) {
+            return;
+        }
+        $this->preguntasSeleccionadas = array_values(
+            array_filter(
+                $this->preguntasSeleccionadas,
+                fn($preguntaId) => (int) $preguntaId !== $id
+            )
+        );
+        unset($this->tiposRespuestaSeleccionados[$id]);
+        $this->actualizarVista();
+    }
+    /* cambiar orden preguntas adicionales */
+    public function moverPregunta(int $id, string $direccion): void
+    {
+
     }
 
     public function render()
